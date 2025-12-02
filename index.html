@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>برنامج قياس مؤشرات الأداء</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- React Router -->
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              gold: {
+                DEFAULT: '#c5b358',
+                light: '#e6d89b',
+                dark: '#a08f3a',
+              }
+            },
+            fontFamily: {
+              sans: ['Cairo', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      
+      /* Toast Animation */
+      @keyframes slideDown {
+        from { transform: translate(-50%, -100%); opacity: 0; }
+        to { transform: translate(-50%, 0); opacity: 1; }
+      }
+      .toast-animate {
+        animation: slideDown 0.3s ease-out forwards;
+      }
+
+      @media print {
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        body { background: white; -webkit-print-color-adjust: exact; }
+      }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="typescript,react">
+        const { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } = ReactRouterDOM;
+        const { useState, useEffect, Fragment, useContext, createContext } = React;
+
+        // --- CONTEXT FOR TOAST ---
+        const ToastContext = createContext(null);
+        const useToast = () => useContext(ToastContext);
+
+        // --- TYPES & ENUMS ---
+        const UserRole = {
+            ADMIN: 'ADMIN',
+            DEPT_MANAGER: 'DEPT_MANAGER',
+            SECTION_HEAD: 'SECTION_HEAD',
+            CONTRACTOR: 'CONTRACTOR',
+            USER: 'USER'
+        };
+
+        // --- CONSTANTS ---
+        const INITIAL_USERS = [
+            { id: '70062', name: 'مصعب علي', role: UserRole.ADMIN },
+            { id: '12345', name: 'عمر سعيد ', role: UserRole.DEPT_MANAGER },
+            { id: '00000', name: ' حسن سالم', role: UserRole.SECTION_HEAD },
+            { id: '11111', name: ' حسين محمد', role: UserRole.CONTRACTOR, facilityId: '1' },
+            { id: '99999', name: 'محمد عمر', role: UserRole.USER, facilityId: '1' },
+        ];
+
+        const INITIAL_FACILITIES = [
+            { id: '1', name: 'مسلخ أ' },
+            { id: '2', name: 'مسلخ ب' },
+            { id: '3', name: 'مسلخ ج' },
+        ];
+
+        const INITIAL_EMPLOYEES = [
+            { id: 'e1', name: 'عبد العزيز وفيق', jobTitle: 'مشرف المسلخ', salary: 4500, facilityId: '1' },
+            { id: 'e2', name: 'محمد شهباز', jobTitle: 'مشرف النظافة', salary: 4500, facilityId: '1' },
+            { id: 'e3', name: 'صافي الدين الضو', jobTitle: 'محاسب', salary: 3500, facilityId: '1' },
+            { id: 'e4', name: 'احمد كمال', jobTitle: 'قصاب', salary: 2500, facilityId: '1' },
+            { id: 'e5', name: 'سعيد خان', jobTitle: 'قصاب ', salary: 2300, facilityId: '1' },
+            { id: 'e6', name: 'راجو كومار', jobTitle: 'قصاب', salary: 2300, facilityId: '1' },
+            { id: 'e7', name: 'عمر', jobTitle: 'قصاب', salary: 2300, facilityId: '1' },
+            { id: 'e8', name: 'انور ', jobTitle: 'قصاب', salary: 2300, facilityId: '1' },
+            { id: 'e9', name: 'يوسف ', jobTitle: 'قصاب', salary: 2300, facilityId: '1' },
+            { id: 'e10', name: 'راجو كومار', jobTitle: 'قصاب', salary: 2300, facilityId: '1' },
+            { id: 'e11', name: 'راجو كومار', jobTitle: 'قصاب', salary: 2300, facilityId: '1' },
+            { id: 'e12', name: 'خالد ', jobTitle: 'قصاب', salary: 2300, facilityId: '1' },
+            { id: 'e13', name: 'مصطفي', jobTitle: 'عامل نظافة', salary: 2300, facilityId: '1' },
+            { id: 'e14', name: 'سيد ', jobTitle: 'عامل نظافة', salary: 2300, facilityId: '1' },
+            { id: 'e15', name: 'معتز ', jobTitle: 'عامل نظافة', salary: 2300, facilityId: '1' },
+            { id: 'e16', name: 'راجو سون', jobTitle: 'عامل نظافة', salary: 2300, facilityId: '1' },
+            { id: 'e17', name: 'طاهر ', jobTitle: 'عامل نظافة', salary: 2300, facilityId: '1' },
+            { id: 'e18', name: 'ايمن  ', jobTitle: 'حمال', salary: 2300, facilityId: '1' },
+        ];
+
+        const INITIAL_VIOLATIONS = [
+            { id: 'v1', name: 'غياب الموظف', fineAmount: 250 },
+            { id: 'v2', name: 'عدم توفير التقارير الإدارية اليومية', fineAmount: 100 },
+            { id: 'v3', name: 'عدم توفير التقارير الشهرية', fineAmount: 100 },
+            { id: 'v4', name: 'عدم توفير سجلات إدارية', fineAmount: 200 },
+            { id: 'v5', name: 'عدم توفير معدات العمل', fineAmount: 500 },
+            { id: 'v6', name: 'عدم صيانة معدات العمل (بعد 3 أيام)', fineAmount: 500 },
+            { id: 'v7', name: 'عدم معايرة معدات العمل', fineAmount: 500 },
+            { id: 'v8', name: 'عدم توفير شهادات تدريب السلامة المهنية', fineAmount: 100 },
+            { id: 'v9', name: 'عدم توفير شهادات اللياقة الصحية', fineAmount: 100 },
+            { id: 'v10', name: 'عدم توفير بطاقة دخول مسلخ', fineAmount: 100 },
+            { id: 'v11', name: 'عدم توفير شهادة تدريب السلامة الغذائية', fineAmount: 100 },
+            { id: 'v12', name: 'عدم نظافة المعدات والأدوات', fineAmount: 500 },
+            { id: 'v13', name: 'سوء نظافة اللحوم', fineAmount: 500 },
+            { id: 'v14', name: 'سوء النظافة الشخصية', fineAmount: 200 },
+            { id: 'v15', name: 'عدم الالتزام بالزي الرسمي', fineAmount: 100 },
+            { id: 'v16', name: 'عدم التزام الموظف بإجراءات السلامة المهنية', fineAmount: 100 },
+            { id: 'v17', name: 'عدم تطبيق شروط الذبح الشرعية', fineAmount: 100 },
+            { id: 'v18', name: 'أي فحص مختبري يثبت حالة إيجابية', fineAmount: 5000 },
+            { id: 'v19', name: 'الذبح في غياب الطبيب البيطري', fineAmount: 3000 },
+        ];
+
+        const INITIAL_ITEMS = [
+            { id: 'i1', name: 'الحضور والانصراف', category: 'ADMIN', linkedViolationId: 'v1' },
+            { id: 'i2', name: 'التقارير الإدارية اليومية', category: 'ADMIN', linkedViolationId: 'v2' },
+            { id: 'i3', name: 'التقارير الشهرية', category: 'ADMIN', linkedViolationId: 'v3' },
+            { id: 'i4', name: 'سجلات إدارية', category: 'ADMIN', linkedViolationId: 'v4' },
+            { id: 'i5', name: 'توفير معدات العمل', category: 'OPERATIONAL', linkedViolationId: 'v5' },
+            { id: 'i6', name: 'صيانة معدات العمل', category: 'OPERATIONAL', linkedViolationId: 'v6' },
+            { id: 'i7', name: 'معايرة معدات العمل', category: 'OPERATIONAL', linkedViolationId: 'v7' },
+            { id: 'i8', name: 'شهادات تدريب السلامة المهنية', category: 'PROFESSIONAL', linkedViolationId: 'v8' },
+            { id: 'i9', name: 'شهادات اللياقة الصحية', category: 'PROFESSIONAL', linkedViolationId: 'v9' },
+            { id: 'i10', name: 'بطاقة دخول مسلخ', category: 'PROFESSIONAL', linkedViolationId: 'v10' },
+            { id: 'i11', name: 'شهادة تدريب السلامة الغذائية', category: 'PROFESSIONAL', linkedViolationId: 'v11' },
+            { id: 'i12', name: 'نظافة المعدات والأدوات', category: 'HYGIENE', linkedViolationId: 'v12' },
+            { id: 'i13', name: 'نظافة اللحوم', category: 'HYGIENE', linkedViolationId: 'v13' },
+            { id: 'i14', name: 'النظافة الشخصية', category: 'HYGIENE', linkedViolationId: 'v14' },
+            { id: 'i15', name: 'الالتزام بالزي الرسمي', category: 'SAFETY', linkedViolationId: 'v15' },
+            { id: 'i16', name: 'التزام بإجراءات السلامة المهنية', category: 'SAFETY', linkedViolationId: 'v16' },
+            { id: 'i17', name: 'تطبيق شروط الذبح الشرعية', category: 'SAFETY', linkedViolationId: 'v17' },
+            { id: 'i18', name: 'فحص المختبري', category: 'LAB', linkedViolationId: 'v18' },
+            { id: 'i19', name: 'تقرير الذبيح اليومي', category: 'ADMIN', linkedViolationId: 'v2' },
+        ];
+
+        const INVOICE_STRUCTURE = [
+            { role: 'مشرف المسلخ', count: 1, salary: 4500 },
+            { role: 'مشرف النظافة', count: 1, salary: 4500 },
+            { role: 'محاسب', count: 1, salary: 3500 },
+            { role: 'قصابين', count: 9, salary: 2500 },
+            { role: 'عمال نظافة', count: 5, salary: 2300 },
+            { role: 'حمال', count: 1, salary: 2300 },
+        ];
+        const CLEANING_MATERIAL_COST = 40000;
+
+        // --- STORAGE SERVICE ---
+        const getStorage = (key, defaultVal) => {
+            const stored = localStorage.getItem(key);
+            if (!stored) return defaultVal;
+            try { return JSON.parse(stored); } catch { return defaultVal; }
+        };
+        const setStorage = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+
+        const storage = {
+            users: { getAll: () => getStorage('users', INITIAL_USERS), save: (v) => setStorage('users', v) },
+            facilities: { getAll: () => getStorage('facilities', INITIAL_FACILITIES), save: (v) => setStorage('facilities', v) },
+            employees: { getAll: () => getStorage('employees', INITIAL_EMPLOYEES), save: (v) => setStorage('employees', v) },
+            items: { getAll: () => getStorage('items', INITIAL_ITEMS), save: (v) => setStorage('items', v) },
+            violationTypes: { getAll: () => getStorage('violationTypes', INITIAL_VIOLATIONS), save: (v) => setStorage('violationTypes', v) },
+            evaluations: { 
+                getAll: () => getStorage('evaluations', []), 
+                save: (v) => setStorage('evaluations', v),
+                add: (entry) => {
+                    const list = getStorage('evaluations', []);
+                    const existingIdx = list.findIndex(e => e.date === entry.date && e.facilityId === entry.facilityId);
+                    if (existingIdx >= 0) list[existingIdx] = entry;
+                    else list.push(entry);
+                    setStorage('evaluations', list);
+                }
+            },
+            violations: { getAll: () => getStorage('violations', []), save: (v) => setStorage('violations', v) },
+            extraLabor: { getAll: () => getStorage('extraLabor', []), save: (v) => setStorage('extraLabor', v) },
+            invoices: { getAll: () => getStorage('invoices', []), save: (v) => setStorage('invoices', v) },
+            monthlyReports: { getAll: () => getStorage('monthlyReports', []), save: (v) => setStorage('monthlyReports', v) },
+            kpiReports: { getAll: () => getStorage('kpiReports', []), save: (v) => setStorage('kpiReports', v) },
+            settings: { get: () => getStorage('appSettings', {}), save: (v) => setStorage('appSettings', v) }
+        };
+
+        // --- UTILS ---
+        const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
+        const tens = ["", "عشرة", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+        const teens = ["عشر", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+        const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+
+        function convertGroup(n) {
+            if (n === 0) return "";
+            if (n < 10) return ones[n];
+            if (n < 20) return teens[n - 10];
+            if (n < 100) {
+                const unit = n % 10;
+                const ten = Math.floor(n / 10);
+                return unit > 0 ? `${ones[unit]} و${tens[ten]}` : tens[ten];
+            }
+            if (n < 1000) {
+                const hundred = Math.floor(n / 100);
+                const remainder = n % 100;
+                return remainder > 0 ? `${hundreds[hundred]} و${convertGroup(remainder)}` : hundreds[hundred];
+            }
+            return "";
+        }
+
+        function numberToArabicText(n) {
+            if (n === 0) return "صفر";
+            const parts = n.toString().split('.');
+            const integerPart = parseInt(parts[0], 10);
+            const decimalPart = parts.length > 1 ? parseInt(parts[1].substring(0, 2).padEnd(2, '0'), 10) : 0;
+            let text = "";
+            const m = Math.floor(integerPart / 1000000);
+            const remM = integerPart % 1000000;
+            const t = Math.floor(remM / 1000);
+            const u = remM % 1000;
+
+            if (m > 0) text += (m >= 3 && m <= 10) ? `${ones[m].replace('ة', '')} ملايين` : `${convertGroup(m)} مليون`;
+            if (t > 0) { if (text !== "") text += " و"; text += (t >= 3 && t <= 10) ? `${ones[t].replace('ة', '')} آلاف` : `${convertGroup(t)} ألف`; }
+            if (u > 0) { if (text !== "") text += " و"; text += convertGroup(u); }
+            text += " درهم";
+            if (decimalPart > 0) { text += " و"; text += convertGroup(decimalPart); text += " فلساً"; }
+            return `فقط ${text} لاغير`;
+        }
+
+        const formatMonthYearArabic = (monthStr) => {
+            if (!monthStr) return '';
+            const date = new Date(monthStr + '-01');
+            return date.toLocaleDateString('ar-AE', { month: 'long', year: 'numeric' });
+        };
+
+        const getCurrentDateTime = () => new Date().toLocaleString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const textToImage = (text, options) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return '';
+            const scale = 4;
+            const width = (options.width || 400);
+            const height = 100;
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            ctx.scale(scale, scale);
+            const weight = options.fontWeight || 'bold';
+            ctx.font = `${weight} ${options.fontSize}px Cairo, sans-serif`;
+            ctx.fillStyle = options.color || "#000000";
+            ctx.textBaseline = 'middle';
+            if (options.align === 'right') { ctx.textAlign = 'right'; ctx.fillText(text, width - 2, height / 2); }
+            else if (options.align === 'left') { ctx.textAlign = 'left'; ctx.fillText(text, 2, height / 2); }
+            else { ctx.textAlign = 'center'; ctx.fillText(text, width / 2, height / 2); }
+            return canvas.toDataURL('image/png');
+        };
+
+        const exportToPDF = (elementId, fileName, orientation, headerInfo, options = { repeatHeader: true }) => {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            const settings = storage.settings.get();
+            const logo = settings.logo;
+            const themeColor = '#F0DB7D';
+            const pxToIn = (px) => px / 96;
+            const hHeight = pxToIn(100);
+            const fHeight = pxToIn(20);
+            const logoSize = pxToIn(80);
+            const topMargin = 1.5;
+            const opt = {
+                margin: [topMargin, 0, fHeight, 0],
+                filename: fileName,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                jsPDF: { unit: 'in', format: 'a4', orientation: orientation }
+            };
+
+            if (window.html2pdf) {
+                window.html2pdf().from(element).set(opt).toPdf().get('pdf').then((pdf) => {
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    // INCREASED FONT SIZES HERE
+                    let titleImg = headerInfo ? textToImage(headerInfo.title, { fontSize: 28, color: '#000000', align: 'center', width: 600 }) : '';
+                    let dateImg = headerInfo ? textToImage(headerInfo.date, { fontSize: 22, color: '#000000', align: 'right', width: 300 }) : '';
+                    let facilityImg = headerInfo ? textToImage(headerInfo.facility, { fontSize: 22, color: '#000000', align: 'left', width: 300 }) : '';
+                    // INCREASED FONT SIZE HERE
+                    const authTextImg = textToImage("نسخة الكترونية معتمدة", { fontSize: 24, color: '#000000', align: 'center', width: 400, fontWeight: 'bold' });
+
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        if (i === 1 || options.repeatHeader) {
+                            pdf.setFillColor(themeColor);
+                            pdf.rect(0, 0, pageWidth, hHeight, 'F');
+                            if (logo) {
+                                const yPos = (hHeight - logoSize) / 2;
+                                const xPos = pageWidth - 0.2 - logoSize;
+                                pdf.addImage(logo, 'PNG', xPos, yPos, logoSize, logoSize);
+                            }
+                        }
+                        if (i === 1) {
+                            if (titleImg) pdf.addImage(titleImg, 'PNG', (pageWidth - 3.0) / 2, hHeight + 0.05, 3.0, 0.5);
+                            if (dateImg) pdf.addImage(dateImg, 'PNG', pageWidth - 2.0 - 0.2, hHeight + 0.5, 2.0, 0.25);
+                            if (facilityImg) pdf.addImage(facilityImg, 'PNG', 0.2, hHeight + 0.5, 2.0, 0.25);
+                        }
+                        pdf.setFillColor(themeColor);
+                        pdf.rect(0, pageHeight - fHeight, pageWidth, fHeight, 'F');
+                        const yText = pageHeight - (fHeight / 2) + 0.04;
+                        pdf.setFontSize(8); pdf.setTextColor(0, 0, 0);
+                        pdf.text("SH-KPI", 0.1, yText);
+                        pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 0.1, yText, { align: 'right' });
+                        if (authTextImg) {
+                            const imgH = fHeight - 0.05; const imgW = imgH * 4;
+                            pdf.addImage(authTextImg, 'PNG', (pageWidth - imgW) / 2, pageHeight - fHeight + 0.02, imgW, imgH);
+                        }
+                    }
+                }).save();
+            } else { alert('مكتبة PDF غير محملة.'); window.print(); }
+        };
+
+        const isApplicable = (item, emp) => {
+            const title = emp.jobTitle;
+            if (['i1', 'i15', 'i16', 'i8', 'i9', 'i10'].includes(item.id)) return true;
+            if (['i2', 'i3', 'i4', 'i5', 'i6', 'i7', 'i18'].includes(item.id)) return title === 'مشرف المسلخ';
+            if (['i12', 'i14'].includes(item.id)) return title === 'عامل نظافة' || title === 'مشرف النظافة' || title === 'حمال';
+            if (['i17', 'i11', 'i13'].includes(item.id)) return title === 'قصاب';
+            if (item.id === 'i19') return title === 'محاسب';
+            return false;
+        };
+
+        // --- COMPONENTS ---
+        
+        // TOAST COMPONENT
+        const Toast = ({ message, onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 2000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            return (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2 toast-animate">
+                    <i className="fa fa-check-circle text-xl"></i>
+                    <span className="font-bold">{message}</span>
+                </div>
+            );
+        };
+
+        // LOGIN
+        const Login = ({ onLogin }) => {
+            const [id, setId] = useState('');
+            const [error, setError] = useState('');
+            const settings = storage.settings.get();
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const users = storage.users.getAll();
+                const user = users.find(u => u.id === id);
+                if (user) onLogin(user); else setError('الرمز الوظيفي غير صحيح');
+            };
+            return (
+                <div className="min-h-screen w-full flex items-center justify-center bg-gray-800 relative">
+                    {settings.loginBackground && <div className="absolute inset-0 bg-cover bg-center z-0" style={{ backgroundImage: `url(${settings.loginBackground})`, opacity: 0.5 }}></div>}
+                    <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md z-10 text-center relative">
+                        <h2 className="text-2xl font-bold mb-6 text-gold-dark">تسجيل الدخول</h2>
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            <div>
+                                <label className="block text-gray-700 text-sm font-bold mb-2 text-right">الرمز الوظيفي</label>
+                                <input type="text" value={id} onChange={(e) => setId(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-gold text-center text-xl tracking-widest" placeholder="أدخل الرمز الوظيفي" autoFocus />
+                            </div>
+                            {error && <p className="text-red-500 text-sm">{error}</p>}
+                            <button type="submit" className="w-full bg-gold hover:bg-gold-dark text-white font-bold py-3 px-4 rounded transition duration-200">دخول</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // LAYOUT
+        const Layout = ({ children, currentUser, onLogout }) => {
+            const navigate = useNavigate();
+            const location = useLocation();
+            const [dateTime, setDateTime] = useState(getCurrentDateTime());
+            const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            const [violationCount, setViolationCount] = useState(0);
+            const settings = storage.settings.get();
+
+            useEffect(() => { const t = setInterval(() => setDateTime(getCurrentDateTime()), 1000); return () => clearInterval(t); }, []);
+            useEffect(() => {
+                const count = storage.violations.getAll().filter(v => (currentUser.role === UserRole.ADMIN || v.facilityId === currentUser.facilityId) && v.status === 'OPEN').length;
+                setViolationCount(count);
+            }, [location.pathname, currentUser]);
+
+            const menuItems = [
+                { label: 'التقييم اليومي', path: '/daily-evaluation', icon: 'fa-calendar-check' },
+                { label: 'المخالفات', path: '/violations', icon: 'fa-exclamation-triangle', badge: violationCount },
+                { label: 'التقييم الشهري', path: '/monthly-evaluation', icon: 'fa-table' },
+                { label: 'التقرير الشهري', path: '/monthly-report', icon: 'fa-file-text' },
+                { label: 'مؤشر الأداء', path: '/kpi', icon: 'fa-chart-pie' },
+                { label: 'الفاتورة الشهرية', path: '/invoice', icon: 'fa-file-invoice-dollar' },
+                { label: 'العمالة الإضافية', path: '/extra-labor', icon: 'fa-users-cog' },
+                { label: 'الاعدادات', path: '/settings', icon: 'fa-cogs', roles: [UserRole.ADMIN] },
+            ];
+
+            return (
+                <div className="flex h-screen bg-gray-100 overflow-hidden">
+                    <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} bg-white shadow-lg transition-all duration-300 flex flex-col no-print`}>
+                        <div className="h-[150px] flex items-center justify-center border-b p-4">
+                            {settings.logo ? <img src={settings.logo} className="max-h-full max-w-full object-contain" /> : <div className="text-gray-400 text-center"><i className="fa fa-image fa-3x"></i><br/>شعار المؤسسة</div>}
+                        </div>
+                        <div className="flex-1 overflow-y-auto py-4">
+                            {menuItems.filter(item => !item.roles || item.roles.includes(currentUser.role)).map((item) => (
+                                <button key={item.path} onClick={() => navigate(item.path)} className={`w-full flex items-center px-6 py-3 text-right hover:bg-gold-light hover:text-white transition-colors ${location.pathname === item.path ? 'bg-gold text-white' : 'text-gray-700'}`}>
+                                    <i className={`fa ${item.icon} w-8 text-center ml-2`}></i><span className="flex-1 font-semibold">{item.label}</span>
+                                    {item.badge ? <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 animate-pulse">{item.badge}</span> : null}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="p-4 border-t"><button onClick={onLogout} className="w-full bg-red-50 text-red-600 py-2 rounded hover:bg-red-100"><i className="fa fa-sign-out-alt ml-2"></i> تسجيل خروج</button></div>
+                    </div>
+                    <div className="flex-1 flex flex-col min-w-0">
+                        <header className="h-[60px] bg-gold text-white flex items-center justify-between px-6 shadow-md no-print">
+                            <div className="flex items-center"><button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-white hover:text-gray-200"><i className="fa fa-bars fa-lg"></i></button><h1 className="mr-4 text-xl font-bold">برنامج قياس مؤشرات الأداء</h1></div>
+                            <div className="flex items-center gap-4 text-sm font-semibold dir-ltr"><span>{dateTime}</span><button onClick={() => navigate(-1)} className="bg-white/20 hover:bg-white/30 p-1 rounded-full w-8 h-8 flex items-center justify-center"><i className="fa fa-arrow-left"></i></button></div>
+                        </header>
+                        <main className="flex-1 overflow-auto p-4 sm:p-6 print:p-0 print:overflow-visible">{children}</main>
+                        <footer className="h-[20px] bg-gold text-white text-xs flex items-center justify-between px-4 no-print"><span>جميع الحقوق محفوظة</span><span>SH-KPI v1.0</span></footer>
+                    </div>
+                </div>
+            );
+        };
+
+        // PAGES
+        
+        // Daily Eval (FULL LOGIC)
+        const DailyEvaluationPage = ({ currentUser }) => {
+            const { showToast } = useToast();
+            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+            const [items, setItems] = useState([]);
+            const [employees, setEmployees] = useState([]);
+            const [violationTypes, setViolationTypes] = useState([]);
+            const [scores, setScores] = useState({});
+            const [submitted, setSubmitted] = useState(false);
+            const [isUpdateMode, setIsUpdateMode] = useState(false);
+            const [facilityName, setFacilityName] = useState('');
+            const [todaysViolations, setTodaysViolations] = useState([]);
+            const [lastRefresh, setLastRefresh] = useState(Date.now());
+            const [facilities, setFacilities] = useState([]);
+            const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
+            const isAdmin = currentUser.role === UserRole.ADMIN;
+
+            useEffect(() => {
+                setItems(storage.items.getAll());
+                setViolationTypes(storage.violationTypes.getAll());
+                setFacilities(storage.facilities.getAll());
+                if (!isAdmin && currentUser.facilityId) setSelectedFacility(currentUser.facilityId);
+            }, [currentUser, isAdmin]);
+
+            useEffect(() => {
+                const f = facilities.find(fac => fac.id === selectedFacility);
+                setFacilityName(f ? f.name : 'المسلخ الرئيسي');
+                const allEmps = storage.employees.getAll();
+                setEmployees(allEmps.filter(e => e.facilityId === selectedFacility));
+            }, [selectedFacility, facilities]);
+
+            useEffect(() => {
+                const load = () => {
+                    const all = storage.violations.getAll();
+                    setTodaysViolations(all.filter(v => v.date === date && v.facilityId === selectedFacility));
+                    const allEvals = storage.evaluations.getAll();
+                    const existing = allEvals.find(e => e.date === date && e.facilityId === selectedFacility);
+                    if (existing) {
+                        setScores(existing.scores);
+                        setSubmitted(existing.submitted);
+                        setIsUpdateMode(true);
+                    } else {
+                        const initScores = {};
+                        storage.items.getAll().forEach(item => {
+                            employees.forEach(emp => { if (isApplicable(item, emp)) initScores[`${item.id}_${emp.id}`] = true; });
+                        });
+                        setScores(initScores);
+                        setSubmitted(false);
+                        setIsUpdateMode(false);
+                    }
+                };
+                if(employees.length > 0) load();
+            }, [date, selectedFacility, lastRefresh, employees]);
+
+            const handleCheck = (itemId, empId) => { if (!submitted) setScores(prev => ({ ...prev, [`${itemId}_${empId}`]: !prev[`${itemId}_${empId}`] })); };
+            const performanceIndex = (() => {
+                const total = Object.keys(scores).length;
+                if (total === 0) return 100;
+                const passed = Object.values(scores).filter(v => v).length;
+                return Math.round((passed / total) * 100);
+            })();
+
+            const getViolationsStatus = () => {
+                const requiredCounts = {};
+                const failedItemsDetails = [];
+                Object.entries(scores).forEach(([key, passed]) => {
+                    if (!passed) {
+                        const [itemId, empId] = key.split('_');
+                        const item = items.find(i => i.id === itemId);
+                        const emp = employees.find(e => e.id === empId);
+                        if (item && emp) {
+                            if (item.linkedViolationId) requiredCounts[item.linkedViolationId] = (requiredCounts[item.linkedViolationId] || 0) + 1;
+                            failedItemsDetails.push({ key, item, emp });
+                        }
+                    }
+                });
+                const actualCounts = {};
+                todaysViolations.forEach(v => { actualCounts[v.violationTypeId] = (actualCounts[v.violationTypeId] || 0) + 1; });
+                const itemsToShow = [];
+                const consumedCounts = {};
+                failedItemsDetails.forEach((detail) => {
+                    const vId = detail.item.linkedViolationId;
+                    if (vId) {
+                        const have = actualCounts[vId] || 0;
+                        const used = consumedCounts[vId] || 0;
+                        if (used < have) consumedCounts[vId] = used + 1; else itemsToShow.push(detail);
+                    } else itemsToShow.push(detail);
+                });
+                return itemsToShow;
+            };
+
+            const handleRegisterViolation = (key, item, emp) => {
+                if (!item.linkedViolationId) return alert('لا يوجد نوع مخالفة مرتبط');
+                const vType = violationTypes.find(v => v.id === item.linkedViolationId);
+                const newV = { id: `${Date.now()}-${Math.floor(Math.random() * 1000)}`, date, violationTypeId: vType.id, violationName: `${vType.name} - ${emp.name}`, amount: vType.fineAmount, count: 1, total: vType.fineAmount, enteredBy: currentUser.name, status: 'OPEN', facilityId: selectedFacility };
+                storage.violations.save([...storage.violations.getAll(), newV]);
+                setLastRefresh(Date.now());
+                showToast(`تم تسجيل مخالفة: ${vType.name}`);
+            };
+
+            const failedList = getViolationsStatus();
+
+            const handleEdit = () => {
+                setSubmitted(false);
+            };
+
+            const handleSubmit = () => {
+                if (submitted) return;
+                if (failedList.length > 0) return alert('يجب تسجيل المخالفات للبنود غير المستوفاة قبل الاعتماد');
+                
+                // Correction Logic
+                const expectedCounts = {};
+                Object.entries(scores).forEach(([key, passed]) => {
+                    if (!passed) {
+                        const [itemId] = key.split('_');
+                        const item = items.find(i => i.id === itemId);
+                        if (item?.linkedViolationId) expectedCounts[item.linkedViolationId] = (expectedCounts[item.linkedViolationId] || 0) + 1;
+                    }
+                });
+                const actualCounts = {};
+                todaysViolations.forEach(v => actualCounts[v.violationTypeId] = (actualCounts[v.violationTypeId] || 0) + 1);
+
+                let allViolations = storage.violations.getAll();
+                let violationsChanged = false;
+                let otherViolations = allViolations.filter(v => !(v.date === date && v.facilityId === selectedFacility));
+                let currentDayViolations = [...todaysViolations];
+                const typesToCheck = new Set([...Object.keys(expectedCounts), ...Object.keys(actualCounts)]);
+                
+                typesToCheck.forEach(vId => {
+                    const expected = expectedCounts[vId] || 0;
+                    const actual = actualCounts[vId] || 0;
+                    if (actual > expected) {
+                        const toRemove = actual - expected;
+                        let removed = 0;
+                        currentDayViolations = currentDayViolations.filter(v => {
+                            if (v.violationTypeId === vId && removed < toRemove) { removed++; return false; }
+                            return true;
+                        });
+                        violationsChanged = true;
+                    }
+                });
+
+                if (violationsChanged) {
+                    storage.violations.save([...otherViolations, ...currentDayViolations]);
+                    setTodaysViolations(currentDayViolations);
+                }
+
+                const ev = { id: Date.now().toString(), date, facilityId: selectedFacility, enteredBy: currentUser.name, scores, submitted: true };
+                storage.evaluations.add(ev);
+                setSubmitted(true);
+                setIsUpdateMode(true);
+                showToast(isUpdateMode ? 'تم تحديث البيانات وتزامن المخالفات' : 'تم الاعتماد');
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded shadow flex flex-wrap justify-between items-center gap-4">
+                        <div className="flex items-center gap-4"><h2 className="text-xl font-bold">التقييم اليومي: {facilityName}</h2>{isAdmin && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}</div>
+                        <div><label>التاريخ: </label><input type="date" value={date} onChange={e => setDate(e.target.value)} className="border p-1 rounded" /></div>
+                    </div>
+                    <div className="bg-white p-4 rounded shadow overflow-x-auto">
+                        <table className="w-full text-sm text-right border-collapse min-w-[1000px]">
+                            <thead><tr><th className="border p-2 bg-gray-50 w-1/5 sticky right-0 bg-gray-100 z-10">البنود / الموظفين</th>{employees.map(emp => <th key={emp.id} className="border p-2 bg-gray-50 text-center"><div className="font-bold">{emp.name}</div><div className="text-xs text-gray-500">{emp.jobTitle}</div></th>)}</tr></thead>
+                            <tbody>
+                                {items.map(item => (
+                                    <tr key={item.id} className="hover:bg-gray-50">
+                                        <td className="border p-2 font-medium sticky right-0 bg-white z-10 shadow-sm">{item.name}<div className="text-xs text-gray-400">{item.category}</div></td>
+                                        {employees.map(emp => {
+                                            const app = isApplicable(item, emp);
+                                            return <td key={emp.id} className={`border p-2 text-center ${app ? '' : 'bg-gray-100'}`}>{app ? <input type="checkbox" checked={scores[`${item.id}_${emp.id}`] || false} onChange={() => handleCheck(item.id, emp.id)} disabled={submitted} className="w-5 h-5 cursor-pointer" /> : <span className="text-gray-300">-</span>}</td>
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="flex flex-col md:flex-row gap-6">
+                        <div className="bg-white p-4 rounded shadow flex-1">
+                            <h3 className="font-bold mb-2">مؤشر الأداء: {performanceIndex}%</h3>
+                            <div className="h-2 rounded bg-gray-200 overflow-hidden"><div style={{ width: `${performanceIndex}%` }} className={`h-full ${performanceIndex < 100 ? 'bg-red-500' : 'bg-green-500'}`}></div></div>
+                            {failedList.length > 0 && (
+                                <div className="mt-4 border-t pt-4"><h4 className="font-bold text-red-700 mb-2">مخالفات مطلوبة:</h4>
+                                    <ul className="space-y-2">{failedList.map(({ key, item, emp }) => (<li key={key} className="flex justify-between bg-red-50 p-2 rounded"><div>{item.name} - {emp.name}</div><button onClick={() => handleRegisterViolation(key, item, emp)} className="bg-red-600 text-white px-2 py-1 rounded text-xs">تسجيل مخالفة</button></li>))}</ul>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1 flex items-end justify-end gap-4">
+                            {submitted && <button onClick={handleEdit} className="px-6 py-3 bg-blue-600 text-white rounded font-bold">تعديل</button>}
+                            <button onClick={handleSubmit} disabled={submitted} className={`px-8 py-3 rounded font-bold text-white ${submitted ? 'bg-gray-400' : 'bg-gold'}`}>{submitted ? 'تم' : (isUpdateMode ? 'تحديث البيانات' : 'تقديم')}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Violations Page
+        const ViolationsPage = ({ currentUser }) => {
+            const [violations, setViolations] = useState([]);
+            const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
+            const [facilities, setFacilities] = useState([]);
+            const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
+            const canSelect = [UserRole.ADMIN, UserRole.DEPT_MANAGER, UserRole.SECTION_HEAD].includes(currentUser.role);
+
+            useEffect(() => { setFacilities(storage.facilities.getAll()); if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, [currentUser]);
+            useEffect(() => {
+                let filtered = storage.violations.getAll();
+                filtered = filtered.filter(v => v.facilityId === selectedFacility);
+                if (filterMonth) filtered = filtered.filter(v => v.date.startsWith(filterMonth));
+                setViolations(filtered);
+            }, [filterMonth, selectedFacility]);
+
+            const closeV = (id) => {
+                const all = storage.violations.getAll();
+                const updated = all.map(v => v.id === id ? { ...v, status: 'CLOSED' } : v);
+                storage.violations.save(updated);
+                setViolations(prev => prev.map(v => v.id === id ? { ...v, status: 'CLOSED' } : v));
+            };
+            const handleExport = () => exportToPDF('violation-report', `Violations-${filterMonth}.pdf`, 'portrait', { title: 'سجل المخالفات', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(filterMonth) });
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded shadow flex flex-wrap justify-between items-center gap-4 no-print">
+                        <h2 className="text-xl font-bold text-gold-dark">سجل المخالفات</h2>
+                        <div className="flex gap-2">
+                            {canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}
+                            <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="border p-2 rounded" />
+                            <button onClick={handleExport} className="bg-blue-600 text-white px-3 py-2 rounded">PDF</button>
+                        </div>
+                    </div>
+                    <div id="violation-report" className="bg-white p-4 rounded shadow">
+                        <table className="w-full text-sm text-right border-collapse">
+                            <thead><tr className="bg-gold text-white"><th className="p-3 border">م</th><th className="p-3 border">التاريخ</th><th className="p-3 border">المخالفة</th><th className="p-3 border">القيمة</th><th className="p-3 border">الحالة</th><th className="p-3 border no-print"></th></tr></thead>
+                            <tbody>
+                                {violations.map((v, i) => (
+                                    <tr key={v.id} className="border-b"><td className="p-3 border">{i + 1}</td><td className="p-3 border">{v.date}</td><td className="p-3 border">{v.violationName}</td><td className="p-3 border">{v.amount}</td><td className="p-3 border">{v.status}</td><td className="p-3 border no-print">{v.status === 'OPEN' && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.USER) && <button onClick={() => closeV(v.id)} className="bg-blue-500 text-white px-2 py-1 rounded text-xs">إغلاق</button>}</td></tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // Monthly Eval
+        const MonthlyEvaluationPage = ({ currentUser }) => {
+            const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+            const [items, setItems] = useState([]);
+            const [employees, setEmployees] = useState([]);
+            const [evaluations, setEvaluations] = useState([]);
+            const [daysInMonth, setDaysInMonth] = useState([]);
+            const [facilities, setFacilities] = useState([]);
+            const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
+            const canSelect = [UserRole.ADMIN, UserRole.SECTION_HEAD].includes(currentUser.role);
+
+            useEffect(() => { setItems(storage.items.getAll()); setFacilities(storage.facilities.getAll()); if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, []);
+            useEffect(() => {
+                setEmployees(storage.employees.getAll().filter(e => e.facilityId === selectedFacility));
+                const filtered = storage.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
+                setEvaluations(filtered);
+                const days = new Date(parseInt(month.split('-')[0]), parseInt(month.split('-')[1]), 0).getDate();
+                const arr = []; for(let i=1; i<=days; i++) arr.push(`${month}-${String(i).padStart(2, '0')}`);
+                setDaysInMonth(arr);
+            }, [month, selectedFacility]);
+
+            const getStatus = (day, item, emp) => {
+                if (!isApplicable(item, emp)) return 'empty';
+                const ev = evaluations.find(e => e.date === day);
+                if (!ev) return 'pending';
+                return ev.scores[`${item.id}_${emp.id}`] ? 'pass' : 'fail';
+            };
+            const handleExport = () => exportToPDF('monthly-eval-report', `Monthly-Eval-${month}.pdf`, 'landscape', { title: 'التقييم الشهري', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) }, { repeatHeader: false });
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded shadow flex justify-between no-print">
+                        <h2 className="text-xl font-bold">التقييم الشهري</h2>
+                        <div className="flex gap-2">{canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}<input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" /><button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded">PDF</button></div>
+                    </div>
+                    <div id="monthly-eval-report" className="bg-white p-4 rounded shadow overflow-x-auto">
+                        <table className="w-full text-xs text-center border-collapse border border-gray-400">
+                            <thead><tr className="bg-gold text-white"><th className="border p-2">التاريخ</th><th className="border p-2">البند</th>{employees.map(e => <th key={e.id} className="border p-2">{e.name}<br/>{e.jobTitle}</th>)}</tr></thead>
+                            <tbody>{daysInMonth.map(day => <Fragment key={day}>{items.map((item, idx) => (<tr key={`${day}-${item.id}`} className={idx % 2 ? 'bg-gray-50' : 'bg-white'}>{idx === 0 && <td rowSpan={items.length} className="border p-2 font-bold bg-gray-100">{day}</td>}<td className="border p-1 text-right">{item.name}</td>{employees.map(emp => { const s = getStatus(day, item, emp); return <td key={emp.id} className="border p-1">{s === 'empty' ? '' : s === 'pending' ? '-' : <i className={`fa ${s === 'pass' ? 'fa-check text-green-500' : 'fa-times text-red-500'}`}></i>}</td> })}</tr>))}</Fragment>)}</tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // Monthly Report
+        const MonthlyReportPage = ({ currentUser }) => {
+            const { showToast } = useToast();
+            const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+            const [facilities, setFacilities] = useState([]);
+            const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
+            const [violations, setViolations] = useState([]);
+            const [notes, setNotes] = useState('');
+            const [isApproved, setIsApproved] = useState(false);
+            const [isSubmitted, setIsSubmitted] = useState(false);
+            const canSelect = [UserRole.ADMIN, UserRole.SECTION_HEAD].includes(currentUser.role);
+            const isVet = [UserRole.USER, UserRole.ADMIN].includes(currentUser.role);
+
+            useEffect(() => { setFacilities(storage.facilities.getAll()); if (!canSelect && !currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, []);
+            useEffect(() => {
+                setViolations(storage.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility));
+                const r = storage.monthlyReports.getAll().find(r => r.month === month && r.facilityId === selectedFacility);
+                if (r) { setNotes(r.notes); setIsApproved(r.approvedBySectionHead); setIsSubmitted(r.submitted); }
+                else { setNotes(''); setIsApproved(false); setIsSubmitted(false); }
+            }, [month, selectedFacility]);
+
+            const groupedViolations = violations.reduce((acc, curr) => { acc[curr.violationName] = (acc[curr.violationName] || 0) + curr.count; return acc; }, {});
+            const handleSubmit = () => {
+                const list = storage.monthlyReports.getAll();
+                const data = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, notes, submitted: true, approvedBySectionHead: false };
+                const idx = list.findIndex(r => r.id === data.id);
+                if (idx >= 0) list[idx] = { ...list[idx], ...data }; else list.push(data);
+                storage.monthlyReports.save(list); setIsSubmitted(true); showToast('تم التقديم');
+            };
+            const handleApprove = () => {
+                const list = storage.monthlyReports.getAll();
+                const data = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, notes, submitted: true, approvedBySectionHead: true };
+                const idx = list.findIndex(r => r.id === data.id);
+                if (idx >= 0) list[idx] = data; else list.push(data);
+                storage.monthlyReports.save(list); setIsApproved(true);
+            };
+            const handleExport = () => exportToPDF('monthly-report', `MR-${month}.pdf`, 'portrait', { title: 'التقرير الشهري', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) });
+
+            if (currentUser.role === UserRole.SECTION_HEAD && !isSubmitted) return <div className="p-8 text-center text-gray-500">لم يتم تقديم التقرير بعد</div>;
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded shadow flex justify-between no-print">
+                        <h2 className="text-xl font-bold">التقرير الشهري</h2>
+                        <div className="flex gap-2">{canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}<input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" /><button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded">PDF</button></div>
+                    </div>
+                    <div id="monthly-report" className="bg-white p-8 rounded shadow">
+                        <table className="w-full border-collapse border border-gray-300 mb-6">
+                            <thead><tr className="bg-gray-100"><th className="border p-3">البند</th><th className="border p-3">العدد</th></tr></thead>
+                            <tbody>{Object.entries(groupedViolations).map(([name, count]) => (<tr key={name}><td className="border p-2">{name}</td><td className="border p-2 text-center text-red-600 font-bold">{count}</td></tr>))}</tbody>
+                        </table>
+                        <textarea className="w-full border p-3 rounded h-32" value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات..." readOnly={isApproved || (currentUser.role === UserRole.SECTION_HEAD && isSubmitted)}></textarea>
+                        <div className="flex justify-between mt-8 border-t pt-4">
+                            <div className="text-center"><p className="font-bold">الطبيب البيطري</p>{isVet && !isSubmitted && <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-1 rounded mt-2 no-print">تقديم</button>}{isSubmitted && <p className="text-blue-600 text-xs">تم التقديم {currentUser.name}</p>}</div>
+                            <div className="text-center"><p className="font-bold">رئيس الشعبة</p>{currentUser.role === UserRole.SECTION_HEAD && !isApproved && isSubmitted && <button onClick={handleApprove} className="bg-gold text-white px-6 py-2 rounded mt-2 no-print">اعتماد</button>}{isApproved && <p className="text-green-600 font-bold">معتمد</p>}</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // KPI
+        const KPIPage = ({ currentUser }) => {
+            const { showToast } = useToast();
+            const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+            const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
+            const [stats, setStats] = useState({});
+            const [overallKPI, setOverallKPI] = useState(100);
+            const [status, setStatus] = useState(null);
+            const [items, setItems] = useState([]);
+            const [notes, setNotes] = useState({});
+            const facilities = storage.facilities.getAll();
+            const showFacilities = [UserRole.ADMIN, UserRole.DEPT_MANAGER].includes(currentUser.role);
+
+            useEffect(() => setItems(storage.items.getAll()), []);
+            useEffect(() => { if (!showFacilities && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, []);
+            useEffect(() => {
+                const r = storage.kpiReports.getAll().find(r => r.month === month && r.facilityId === selectedFacility);
+                setStatus(r || null);
+                if(r) setNotes(r.notes || {}); else setNotes({});
+                
+                const evals = storage.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
+                let totalC = 0, totalP = 0;
+                const iStats = {};
+                items.forEach(item => {
+                    let iT = 0, iP = 0;
+                    evals.forEach(ev => Object.keys(ev.scores).forEach(k => { if (k.startsWith(`${item.id}_`)) { iT++; if(ev.scores[k]) iP++; } }));
+                    iStats[item.id] = { total: iT, passed: iP, percentage: iT === 0 ? 100 : Math.round((iP/iT)*100) };
+                    totalC += iT; totalP += iP;
+                });
+                setStats(iStats);
+                setOverallKPI(totalC === 0 ? 100 : Math.round((totalP/totalC)*100));
+            }, [month, selectedFacility, items]);
+
+            const handleSubmit = () => { const d = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, notes, approvedByManager: false, submittedForApproval: true }; storage.kpiReports.save([...storage.kpiReports.getAll().filter(r => r.id !== d.id), d]); setStatus(d); showToast('تم التقديم'); };
+            const handleApprove = () => { if(status) { const d = {...status, approvedByManager: true}; storage.kpiReports.save([...storage.kpiReports.getAll().filter(r => r.id !== d.id), d]); setStatus(d); }};
+            const handleExport = () => exportToPDF('kpi-report', `KPI-${month}.pdf`, 'portrait', { title: 'مؤشر الأداء الشهري', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) });
+
+            if (currentUser.role === UserRole.DEPT_MANAGER && (!status || !status.submittedForApproval)) return <div className="p-8 text-center text-gray-500">لم يتم تقديم المؤشر للاعتماد</div>;
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded shadow flex justify-between no-print">
+                        <h2 className="text-xl font-bold">مؤشر الأداء</h2>
+                        <div className="flex gap-2">{showFacilities && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}<input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
+                        {(!status || !status.submittedForApproval) && currentUser.role !== UserRole.DEPT_MANAGER && <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-2 rounded">تقديم</button>}
+                        {currentUser.role === UserRole.DEPT_MANAGER && status?.submittedForApproval && !status.approvedByManager && <button onClick={handleApprove} className="bg-gold text-white px-4 py-2 rounded">اعتماد</button>}
+                        <button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded">PDF</button></div>
+                    </div>
+                    <div id="kpi-report" className="bg-white p-8 rounded shadow">
+                        <table className="w-full border-collapse border border-gray-300">
+                            <thead><tr className="bg-gold text-white"><th className="border p-2">البند</th><th className="border p-2">العدد</th><th className="border p-2">المطابق</th><th className="border p-2">%</th><th className="border p-2 w-1/3">ملاحظات</th></tr></thead>
+                            <tbody>{items.map(i => { const s = stats[i.id] || {total:0,passed:0,percentage:100}; return <tr key={i.id}><td className="border p-2">{i.name}</td><td className="border p-2">{s.total}</td><td className="border p-2">{s.passed}</td><td className="border p-2">{s.percentage}%</td><td className="border p-2"><input className="w-full bg-transparent border-b" value={notes[i.id]||''} onChange={e=>setNotes({...notes, [i.id]:e.target.value})} readOnly={status?.approvedByManager}/></td></tr> })}</tbody>
+                            <tfoot><tr className="bg-gray-100 font-bold"><td colSpan={3} className="border p-3">المؤشر العام</td><td className="border p-3">{overallKPI}%</td><td></td></tr></tfoot>
+                        </table>
+                        <div className="flex justify-between mt-8 border-t pt-4"><div className="text-center"><p className="font-bold">الطبيب البيطري</p>{status?.submittedForApproval && <p className="text-blue-600">تم التقديم</p>}</div><div className="text-center"><p className="font-bold">مدير الإدارة</p>{status?.approvedByManager && <p className="text-green-600">معتمد</p>}</div></div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Invoice (FULL LOGIC)
+        const InvoicePage = ({ currentUser }) => {
+            const { showToast } = useToast();
+            const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+            const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
+            const [invoiceData, setInvoiceData] = useState(null);
+            const [facilities, setFacilities] = useState([]);
+            const [violationsTotal, setViolationsTotal] = useState(0);
+            const [kpiPercentage, setKpiPercentage] = useState(100);
+            const [extraLabor, setExtraLabor] = useState(null);
+            const canSelect = [UserRole.ADMIN, UserRole.DEPT_MANAGER, UserRole.SECTION_HEAD].includes(currentUser.role);
+            
+            useEffect(() => {
+                setFacilities(storage.facilities.getAll());
+                if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId);
+            }, []);
+
+            useEffect(() => {
+                setInvoiceData(storage.invoices.getAll().find(i => i.month === month && i.facilityId === selectedFacility) || null);
+                // Calculate total violations for the month/facility
+                const v = storage.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility).reduce((s, v) => s + v.total, 0);
+                setViolationsTotal(v);
+                
+                // Calculate KPI
+                const evals = storage.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
+                let t = 0, p = 0; 
+                evals.forEach(e => Object.values(e.scores).forEach(x => { t++; if(x) p++; }));
+                setKpiPercentage(t === 0 ? 100 : Math.round((p/t)*100));
+
+                // Load Extra Labor
+                const allExtra = storage.extraLabor.getAll();
+                const extra = allExtra.find(e => e.date === month && e.facilityId === selectedFacility && e.submitted);
+                setExtraLabor(extra || null);
+
+            }, [month, selectedFacility]);
+
+            const baseTotal = INVOICE_STRUCTURE.reduce((sum, item) => sum + (item.count * item.salary), 0) + CLEANING_MATERIAL_COST;
+            const extraCost = extraLabor ? extraLabor.items.reduce((sum, item) => sum + (item.dailyRate * item.days), 0) : 0;
+            const subTotal = baseTotal + extraCost; 
+            const tax = subTotal * 0.05;
+            const retention = subTotal * 0.05;
+            let kpiDeduction = 0;
+            if (kpiPercentage < 80) kpiDeduction = subTotal * 0.10;
+            else if (kpiPercentage < 90) kpiDeduction = subTotal * 0.05;
+            const finalTotal = subTotal - tax - retention - kpiDeduction - violationsTotal;
+
+            const handleUserSubmit = () => { const d = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, status: 'SUBMITTED', approvals: {}, signatures: { enteredBy: currentUser.name } }; storage.invoices.save([...storage.invoices.getAll().filter(i => i.id !== d.id), d]); setInvoiceData(d); showToast('تم التقديم'); };
+            const handleContractorApprove = () => { if(invoiceData) { const d = {...invoiceData, approvals: {...invoiceData.approvals, contractor: true}, signatures: {...invoiceData.signatures, contractor: currentUser.name}}; storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); setInvoiceData(d); } };
+            const handleManagerApprove = () => { if(invoiceData) { const d = {...invoiceData, status: 'APPROVED', approvals: {...invoiceData.approvals, deptManager: true}, signatures: {...invoiceData.signatures, deptManager: currentUser.name}}; storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); setInvoiceData(d); } };
+            const handleExport = () => exportToPDF('invoice-report', `Invoice-${month}.pdf`, 'landscape', { title: 'الفاتورة الشهرية', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) });
+
+            const isUser = currentUser.role === UserRole.USER || currentUser.role === UserRole.ADMIN;
+
+            if (currentUser.role === UserRole.DEPT_MANAGER && (!invoiceData || invoiceData.status === 'PENDING')) return <div className="p-8 text-center text-gray-500">لم يتم تقديم الفاتورة للاعتماد</div>;
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded shadow flex flex-wrap gap-4 no-print">
+                        <h2 className="text-xl font-bold flex-1">الفاتورة</h2>
+                        {canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}
+                        <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
+                        
+                        {isUser && (!invoiceData || invoiceData.status === 'PENDING') && <button onClick={handleUserSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">تقديم للاعتماد</button>}
+                        {invoiceData && invoiceData.status === 'SUBMITTED' && isUser && <span className="text-green-600 font-bold px-4 py-2">تم التقديم</span>}
+                        {invoiceData && !invoiceData.approvals.contractor && currentUser.role === UserRole.CONTRACTOR && <button onClick={handleContractorApprove} className="bg-purple-600 text-white px-4 py-2 rounded">اعتماد مقاول</button>}
+                        {invoiceData && !invoiceData.approvals.deptManager && currentUser.role === UserRole.DEPT_MANAGER && <button onClick={handleManagerApprove} className="bg-gold text-white px-4 py-2 rounded">اعتماد نهائي</button>}
+                        <button onClick={handleExport} className="bg-gray-600 text-white px-4 py-2 rounded">PDF</button>
+                    </div>
+                    <div id="invoice-report" className="bg-white p-4 rounded shadow">
+                        <table className="w-full border-collapse border border-gray-400 text-sm mb-2">
+                            <thead><tr className="bg-gray-100"><th className="border p-1">البند</th><th className="border p-1">العدد</th><th className="border p-1">الراتب</th><th className="border p-1">الاجمالي</th></tr></thead>
+                            <tbody>
+                                {INVOICE_STRUCTURE.map((item, i) => <tr key={i}><td className="border p-1">{item.role}</td><td className="border p-1">{item.count}</td><td className="border p-1">{item.salary}</td><td className="border p-1">{(item.count * item.salary).toLocaleString()}</td></tr>)}
+                                <tr><td className="border p-1">مواد تنظيف</td><td className="border p-1">-</td><td className="border p-1">-</td><td className="border p-1">{CLEANING_MATERIAL_COST.toLocaleString()}</td></tr>
+                                {extraLabor && <tr className="text-blue-600 font-bold"><td className="border p-1">+</td><td colSpan={2} className="border p-1">عمالة إضافية</td><td className="border p-1">{extraCost.toLocaleString()}</td></tr>}
+                                <tr className="bg-gray-50 font-bold"><td colSpan={3} className="border p-1">الاجمالي</td><td className="border p-1">{subTotal.toLocaleString()}</td></tr>
+                                <tr><td colSpan={3} className="border p-1 text-red-500">خصم مخالفات</td><td className="border p-1 text-red-500">{violationsTotal}</td></tr>
+                                <tr><td colSpan={3} className="border p-1 text-red-500">خصم أداء ({kpiPercentage}%)</td><td className="border p-1 text-red-500">{kpiDeduction}</td></tr>
+                                <tr className="bg-gold text-white font-bold text-lg"><td colSpan={3} className="border p-2">الصافي</td><td className="border p-2">{finalTotal.toLocaleString()}</td></tr>
+                            </tbody>
+                        </table>
+                        <div className="text-center font-bold text-lg border-b-2 pb-2">{numberToArabicText(finalTotal)}</div>
+                        <div className="flex justify-between mt-4 text-sm">
+                            <div className="text-center w-1/3"><p className="font-bold">مدير الإدارة</p><p>{invoiceData?.signatures.deptManager || '---'}</p></div>
+                            <div className="text-center w-1/3"><p className="font-bold">المقاول</p><p>{invoiceData?.signatures.contractor || '---'}</p></div>
+                            <div className="text-center w-1/3"><p className="font-bold">الطبيب</p><p>{invoiceData?.signatures.enteredBy || '---'}</p></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Extra Labor (FULL)
+        const ExtraLaborPage = ({ currentUser }) => {
+            const { showToast } = useToast();
+            const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+            const [rows, setRows] = useState(Array(12).fill(null).map((_, i) => ({ id: `el-${i}`, employeeName: '', jobTitle: '', dailyRate: 0, days: 0 })));
+            const [submitted, setSubmitted] = useState(false);
+
+            useEffect(() => {
+                const all = storage.extraLabor.getAll();
+                const existing = all.find(e => e.date === month && e.facilityId === (currentUser.facilityId || '1'));
+                if (existing) { setRows(existing.items); setSubmitted(existing.submitted); }
+                else { setRows(Array(12).fill(null).map((_, i) => ({ id: `el-${i}`, employeeName: '', jobTitle: '', dailyRate: 0, days: 0 }))); setSubmitted(false); }
+            }, [month, currentUser]);
+
+            const updateRow = (idx, field, value) => { if (submitted) return; const newRows = [...rows]; newRows[idx] = { ...newRows[idx], [field]: value }; setRows(newRows); };
+            const handleSubmit = () => {
+                const data = { id: `${month}-${currentUser.facilityId}`, date: month, facilityId: currentUser.facilityId || '1', items: rows, submitted: true, approvedBy: currentUser.name };
+                const all = storage.extraLabor.getAll(); const existingIdx = all.findIndex(e => e.id === data.id);
+                if (existingIdx >= 0) all[existingIdx] = data; else all.push(data);
+                storage.extraLabor.save(all); setSubmitted(true); showToast('تم الاعتماد');
+            };
+
+            const grandTotal = rows.reduce((sum, r) => sum + (r.dailyRate * r.days), 0);
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white p-4 rounded shadow flex justify-between items-center no-print"><h2 className="text-xl font-bold">العمالة الإضافية</h2><input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border p-2 rounded"/></div>
+                    <div className="bg-white p-6 rounded shadow">
+                        <table className="w-full border-collapse border border-gray-300">
+                            <thead><tr className="bg-gray-100"><th className="border p-2 w-12">#</th><th className="border p-2">اسم الموظف</th><th className="border p-2">الوظيفة</th><th className="border p-2 w-24">الأجر</th><th className="border p-2 w-24">الأيام</th><th className="border p-2 w-32">الاجمالي</th></tr></thead>
+                            <tbody>
+                                {rows.map((row, idx) => (<tr key={idx}><td className="border p-2 text-center">{idx + 1}</td><td className="border p-2"><input className="w-full p-1 border-b focus:border-gold outline-none" value={row.employeeName} onChange={(e) => updateRow(idx, 'employeeName', e.target.value)} disabled={submitted}/></td><td className="border p-2"><input className="w-full p-1 border-b focus:border-gold outline-none" value={row.jobTitle} onChange={(e) => updateRow(idx, 'jobTitle', e.target.value)} disabled={submitted}/></td><td className="border p-2"><input type="number" className="w-full p-1 border-b text-center outline-none" value={row.dailyRate || ''} onChange={(e) => updateRow(idx, 'dailyRate', Number(e.target.value))} disabled={submitted}/></td><td className="border p-2"><input type="number" className="w-full p-1 border-b text-center outline-none" value={row.days || ''} onChange={(e) => updateRow(idx, 'days', Number(e.target.value))} disabled={submitted}/></td><td className="border p-2 text-center font-bold bg-gray-50">{(row.dailyRate * row.days).toLocaleString()}</td></tr>))}
+                                <tr className="bg-gold text-white font-bold text-lg"><td colSpan={5} className="border p-3 text-center">إجمالي الأجور</td><td className="border p-3 text-center">{grandTotal.toLocaleString()}</td></tr>
+                            </tbody>
+                        </table>
+                        {!submitted && <div className="mt-4 text-left"><button onClick={handleSubmit} className="bg-gold hover:bg-gold-dark text-white px-6 py-2 rounded">اعتماد البيانات</button></div>}
+                    </div>
+                </div>
+            );
+        };
+
+        // Settings (FULL)
+        const SettingsPage = () => {
+            const { showToast } = useToast();
+            const [users, setUsers] = useState(storage.users.getAll());
+            const [newUser, setNewUser] = useState({ role: UserRole.USER });
+            const [employees, setEmployees] = useState(storage.employees.getAll());
+            const [newEmp, setNewEmp] = useState({});
+            const [items, setItems] = useState(storage.items.getAll());
+            const [newItem, setNewItem] = useState({ category: 'ADMIN' });
+            const [violations, setViolations] = useState(storage.violationTypes.getAll());
+            const [newViolation, setNewViolation] = useState({});
+            const [activeTab, setActiveTab] = useState('USERS');
+            const [logo, setLogo] = useState(storage.settings.get().logo || null);
+            const facilities = storage.facilities.getAll();
+            
+            const handleFile = (e, type) => { const file = e.target.files?.[0]; if(file){ const r = new FileReader(); r.onloadend=()=>{ if(type==='logo'){setLogo(r.result); storage.settings.save({...storage.settings.get(), logo: r.result});} }; r.readAsDataURL(file); } };
+            const addUser = () => { if(!newUser.id)return; const u = [...users.filter(u=>u.id!==newUser.id), newUser]; setUsers(u); storage.users.save(u); showToast('تم الحفظ'); };
+            const addEmp = () => { if(!newEmp.name)return; const e = {...newEmp, id: `e${Date.now()}`}; const u = [...employees, e]; setEmployees(u); storage.employees.save(u); };
+            const addItem = () => { if(!newItem.name)return; const i = {...newItem, id: `i${Date.now()}`}; const u = [...items, i]; setItems(u); storage.items.save(u); };
+            const addViol = () => { if(!newViolation.name)return; const v = {...newViolation, id: `v${Date.now()}`}; const u = [...violations, v]; setViolations(u); storage.violationTypes.save(u); };
+
+            return (
+                <div className="space-y-6 bg-white p-6 rounded shadow">
+                    <h2 className="text-xl font-bold">الاعدادات</h2>
+                    <div className="flex border-b mb-4 overflow-x-auto">
+                        {['USERS','EMPLOYEES','ITEMS','VIOLATIONS','GENERAL'].map(t => <button key={t} onClick={()=>setActiveTab(t)} className={`px-4 py-2 ${activeTab===t?'border-b-2 border-gold font-bold':''}`}>{t==='USERS'?'المستخدمين':t==='EMPLOYEES'?'الموظفين':t==='ITEMS'?'البنود':t==='VIOLATIONS'?'المخالفات':'عام'}</button>)}
+                    </div>
+
+                    {activeTab === 'GENERAL' && (
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <div><h3 className="font-bold mb-2">الشعار</h3><div className="w-40 h-40 border-2 border-dashed flex items-center justify-center overflow-hidden mb-2">{logo?<img src={logo} className="w-full"/>:<span className="text-gray-400">لا يوجد</span>}</div><input type="file" onChange={e=>handleFile(e,'logo')}/></div>
+                        </div>
+                    )}
+
+                    {activeTab === 'USERS' && (
+                        <div>
+                            <div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 mb-4">
+                                <input placeholder="الرقم" onChange={e => setNewUser({...newUser, id: e.target.value})} className="border p-2"/>
+                                <input placeholder="الاسم" onChange={e => setNewUser({...newUser, name: e.target.value})} className="border p-2"/>
+                                <select onChange={e => setNewUser({...newUser, role: e.target.value})} className="border p-2">{Object.values(UserRole).map(r=><option key={r} value={r}>{r}</option>)}</select>
+                                <select onChange={e => setNewUser({...newUser, facilityId: e.target.value})} className="border p-2"><option value="">الموقع</option>{facilities.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+                                <button onClick={addUser} className="bg-green-600 text-white col-span-4">حفظ / تحديث</button>
+                            </div>
+                            <ul>{users.map(u => <li key={u.id} className="border-b p-2 flex justify-between"><span>{u.name} ({u.role}) - {facilities.find(f=>f.id===u.facilityId)?.name}</span><button className="text-red-500" onClick={()=>{const n=users.filter(x=>x.id!==u.id); setUsers(n); storage.users.save(n);}}>حذف</button></li>)}</ul>
+                        </div>
+                    )}
+                    {activeTab === 'EMPLOYEES' && (
+                        <div>
+                            <div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 mb-4">
+                                <input placeholder="الاسم" onChange={e => setNewEmp({...newEmp, name: e.target.value})} className="border p-2"/>
+                                <input placeholder="الوظيفة" onChange={e => setNewEmp({...newEmp, jobTitle: e.target.value})} className="border p-2"/>
+                                <input type="number" placeholder="الراتب" onChange={e => setNewEmp({...newEmp, salary: Number(e.target.value)})} className="border p-2"/>
+                                <select onChange={e => setNewEmp({...newEmp, facilityId: e.target.value})} className="border p-2"><option value="">الموقع</option>{facilities.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
+                                <button onClick={addEmp} className="bg-green-600 text-white col-span-4">إضافة</button>
+                            </div>
+                            <ul>{employees.map(e => <li key={e.id} className="border-b p-2 flex justify-between"><span>{e.name} - {facilities.find(f=>f.id===e.facilityId)?.name}</span><button className="text-red-500" onClick={()=>{const n=employees.filter(x=>x.id!==e.id); setEmployees(n); storage.employees.save(n);}}>حذف</button></li>)}</ul>
+                        </div>
+                    )}
+                     {activeTab === 'ITEMS' && (
+                        <div>
+                            <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 mb-4">
+                                <input placeholder="البند" onChange={e => setNewItem({...newItem, name: e.target.value})} className="border p-2"/>
+                                <select onChange={e => setNewItem({...newItem, category: e.target.value})} className="border p-2"><option value="ADMIN">إدارية</option><option value="OPERATIONAL">تشغيلية</option><option value="PROFESSIONAL">مهنية</option><option value="HYGIENE">نظافة</option><option value="SAFETY">سلامة</option><option value="LAB">مختبر</option></select>
+                                <button onClick={addItem} className="bg-green-600 text-white">إضافة</button>
+                            </div>
+                            <ul>{items.map(i => <li key={i.id} className="border-b p-2 flex justify-between"><span>{i.name} ({i.category})</span><button className="text-red-500" onClick={()=>{const n=items.filter(x=>x.id!==i.id); setItems(n); storage.items.save(n);}}>حذف</button></li>)}</ul>
+                        </div>
+                    )}
+                    {activeTab === 'VIOLATIONS' && (
+                        <div>
+                            <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 mb-4">
+                                <input placeholder="المخالفة" onChange={e => setNewViolation({...newViolation, name: e.target.value})} className="border p-2"/>
+                                <input type="number" placeholder="الغرامة" onChange={e => setNewViolation({...newViolation, fineAmount: Number(e.target.value)})} className="border p-2"/>
+                                <button onClick={addViol} className="bg-green-600 text-white">إضافة</button>
+                            </div>
+                            <ul>{violations.map(v => <li key={v.id} className="border-b p-2 flex justify-between"><span>{v.name} ({v.fineAmount})</span><button className="text-red-500" onClick={()=>{const n=violations.filter(x=>x.id!==v.id); setViolations(n); storage.violationTypes.save(n);}}>حذف</button></li>)}</ul>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- APP ROOT ---
+        const App = () => {
+            const [currentUser, setCurrentUser] = useState(null);
+            const [toast, setToast] = useState(null);
+
+            useEffect(() => { const s = localStorage.getItem('currentUser'); if (s) setCurrentUser(JSON.parse(s)); }, []);
+            const handleLogin = (u) => { setCurrentUser(u); localStorage.setItem('currentUser', JSON.stringify(u)); };
+            const handleLogout = () => { setCurrentUser(null); localStorage.removeItem('currentUser'); };
+
+            const showToast = (msg) => {
+                setToast(msg);
+                setTimeout(() => setToast(null), 2000); // Hide after 2 seconds
+            };
+
+            if (!currentUser) return <Login onLogin={handleLogin} />;
+
+            return (
+                <ToastContext.Provider value={{ showToast }}>
+                    {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+                    <HashRouter>
+                        <Layout currentUser={currentUser} onLogout={handleLogout}>
+                            <Routes>
+                                <Route path="/" element={<Navigate to="/daily-evaluation" replace />} />
+                                <Route path="/daily-evaluation" element={<DailyEvaluationPage currentUser={currentUser} />} />
+                                <Route path="/violations" element={<ViolationsPage currentUser={currentUser} />} />
+                                <Route path="/monthly-evaluation" element={<MonthlyEvaluationPage currentUser={currentUser} />} />
+                                <Route path="/monthly-report" element={<MonthlyReportPage currentUser={currentUser} />} />
+                                <Route path="/kpi" element={<KPIPage currentUser={currentUser} />} />
+                                <Route path="/invoice" element={<InvoicePage currentUser={currentUser} />} />
+                                <Route path="/extra-labor" element={<ExtraLaborPage currentUser={currentUser} />} />
+                                <Route path="/settings" element={<SettingsPage />} />
+                            </Routes>
+                        </Layout>
+                    </HashRouter>
+                </ToastContext.Provider>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
