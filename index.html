@@ -59,6 +59,40 @@
         .print-only { display: block !important; }
         body { background: white; -webkit-print-color-adjust: exact; }
       }
+
+      /* Invoice specific styles */
+      .invoice-table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 12px;
+      }
+      .invoice-table th {
+        background-color: #f0f0f0;
+        border: 1px solid #000;
+        padding: 4px;
+        text-align: center;
+        font-weight: bold;
+      }
+      .invoice-table td {
+        border: 1px solid #000;
+        padding: 4px;
+        text-align: center;
+      }
+      .invoice-table .total-row td {
+        background-color: #f0f0f0;
+        font-weight: bold;
+      }
+      .invoice-header {
+        background-color: #f0db7d;
+        padding: 20px;
+        border-bottom: 2px solid #000;
+      }
+      .invoice-footer {
+        background-color: #f0db7d;
+        padding: 10px;
+        border-top: 2px solid #000;
+        font-size: 11px;
+      }
     </style>
 </head>
 <body>
@@ -161,14 +195,21 @@
             { id: 'i19', name: 'تقرير الذبيح اليومي', category: 'ADMIN', linkedViolationId: 'v2' },
         ];
 
-        const INVOICE_STRUCTURE = [
-            { role: 'مشرف المسلخ', count: 1, salary: 4500 },
-            { role: 'مشرف النظافة', count: 1, salary: 4500 },
-            { role: 'محاسب', count: 1, salary: 3500 },
-            { role: 'قصابين', count: 9, salary: 2500 },
-            { role: 'عمال نظافة', count: 5, salary: 2300 },
-            { role: 'حمال', count: 1, salary: 2300 },
+        const INVOICE_EMPLOYEE_STRUCTURE = [
+            { role: 'مشرف المسلخ', count: 1, monthlySalary: 4500, dailySalary: 150, expectedDays: 30, actualDays: 30, absentDays: 0 },
+            { role: 'مشرف النظافة', count: 1, monthlySalary: 4500, dailySalary: 150, expectedDays: 30, actualDays: 30, absentDays: 0 },
+            { role: 'محاسب', count: 1, monthlySalary: 3500, dailySalary: 117, expectedDays: 30, actualDays: 30, absentDays: 0 },
+            { role: 'قصاب', count: 9, monthlySalary: 2500, dailySalary: 83, expectedDays: 30, actualDays: 30, absentDays: 0 },
+            { role: 'عامل نظافة', count: 5, monthlySalary: 2300, dailySalary: 77, expectedDays: 30, actualDays: 30, absentDays: 0 },
+            { role: 'حمال', count: 1, monthlySalary: 2300, dailySalary: 77, expectedDays: 30, actualDays: 30, absentDays: 0 },
         ];
+
+        const EXTRA_LABOR_STRUCTURE = [
+            { role: 'جزار إضافي', count: 0, monthlySalary: 2500, dailySalary: 83 },
+            { role: 'عامل نظافة إضافي', count: 0, monthlySalary: 2300, dailySalary: 77 },
+            { role: 'حمال إضافي', count: 0, monthlySalary: 2300, dailySalary: 77 },
+        ];
+
         const CLEANING_MATERIAL_COST = 40000;
 
         // --- STORAGE SERVICE ---
@@ -939,7 +980,7 @@
             );
         };
 
-        // Invoice
+        // Invoice - المحسنة مع تصميم مطابق للملف
         const InvoicePage = ({ currentUser }) => {
             const { showToast } = useToast();
             const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -949,6 +990,7 @@
             const [violationsTotal, setViolationsTotal] = useState(0);
             const [kpiPercentage, setKpiPercentage] = useState(100);
             const [extraLabor, setExtraLabor] = useState(null);
+            const [absentDays, setAbsentDays] = useState({});
             const canSelect = [UserRole.ADMIN, UserRole.DEPT_MANAGER, UserRole.SECTION_HEAD].includes(currentUser.role);
             
             useEffect(() => {
@@ -957,71 +999,383 @@
             }, []);
 
             useEffect(() => {
+                // تحميل بيانات الفاتورة المخزنة
                 setInvoiceData(storage.invoices.getAll().find(i => i.month === month && i.facilityId === selectedFacility) || null);
+                
+                // حساب المخالفات
                 const v = storage.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility).reduce((s, v) => s + v.total, 0);
                 setViolationsTotal(v);
                 
+                // حساب مؤشر الأداء
                 const evals = storage.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
                 let t = 0, p = 0; 
                 evals.forEach(e => Object.values(e.scores).forEach(x => { t++; if(x) p++; }));
                 setKpiPercentage(t === 0 ? 100 : Math.round((p/t)*100));
 
+                // تحميل العمالة الإضافية
                 const allExtra = storage.extraLabor.getAll();
                 const extra = allExtra.find(e => e.date === month && e.facilityId === selectedFacility && e.submitted);
                 setExtraLabor(extra || null);
 
+                // تحميل أيام الغياب
+                const absences = {};
+                // افتراضي: 0 يوم غياب لكل وظيفة
+                INVOICE_EMPLOYEE_STRUCTURE.forEach(item => {
+                    absences[item.role] = 0;
+                });
+                setAbsentDays(absences);
+
             }, [month, selectedFacility]);
 
-            const baseTotal = INVOICE_STRUCTURE.reduce((sum, item) => sum + (item.count * item.salary), 0) + CLEANING_MATERIAL_COST;
-            const extraCost = extraLabor ? extraLabor.items.reduce((sum, item) => sum + (item.dailyRate * item.days), 0) : 0;
-            const subTotal = baseTotal + extraCost; 
-            const tax = subTotal * 0.05;
-            const retention = subTotal * 0.05;
-            let kpiDeduction = 0;
-            if (kpiPercentage < 80) kpiDeduction = subTotal * 0.10;
-            else if (kpiPercentage < 90) kpiDeduction = subTotal * 0.05;
-            const finalTotal = subTotal - tax - retention - kpiDeduction - violationsTotal;
+            // حساب البيانات بناءً على الهيكل
+            const calculateEmployeeCosts = () => {
+                return INVOICE_EMPLOYEE_STRUCTURE.map(item => {
+                    const actualDays = item.expectedDays - (absentDays[item.role] || 0);
+                    const monthlyCost = item.count * item.monthlySalary;
+                    const dailyCost = item.count * item.dailySalary;
+                    const totalDaysCost = dailyCost * actualDays;
+                    const absentPenalty = (item.role === 'مشرف المسلخ' || item.role === 'مشرف النظافة') 
+                        ? (absentDays[item.role] || 0) * 250
+                        : (absentDays[item.role] || 0) * 150;
+                    
+                    return {
+                        ...item,
+                        actualDays,
+                        totalDaysCost,
+                        absentPenalty,
+                        netSalary: totalDaysCost - absentPenalty
+                    };
+                });
+            };
 
-            const handleUserSubmit = () => { const d = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, status: 'SUBMITTED', approvals: {}, signatures: { enteredBy: currentUser.name } }; storage.invoices.save([...storage.invoices.getAll().filter(i => i.id !== d.id), d]); setInvoiceData(d); showToast('تم التقديم'); };
-            const handleContractorApprove = () => { if(invoiceData) { const d = {...invoiceData, approvals: {...invoiceData.approvals, contractor: true}, signatures: {...invoiceData.signatures, contractor: currentUser.name}}; storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); setInvoiceData(d); } };
-            const handleManagerApprove = () => { if(invoiceData) { const d = {...invoiceData, status: 'APPROVED', approvals: {...invoiceData.approvals, deptManager: true}, signatures: {...invoiceData.signatures, deptManager: currentUser.name}}; storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); setInvoiceData(d); } };
-            const handleExport = () => exportToPDF('invoice-report', `Invoice-${month}.pdf`, 'landscape', { title: 'الفاتورة الشهرية', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) });
+            const employeeCosts = calculateEmployeeCosts();
+            const totalSalaries = employeeCosts.reduce((sum, item) => sum + item.netSalary, 0);
+            const totalAbsentPenalties = employeeCosts.reduce((sum, item) => sum + item.absentPenalty, 0);
+            
+            // حساب العمالة الإضافية
+            const extraLaborCost = extraLabor ? extraLabor.items.reduce((sum, item) => sum + (item.dailyRate * item.days), 0) : 0;
+            
+            // المجاميع
+            const baseTotal = totalSalaries + CLEANING_MATERIAL_COST + extraLaborCost;
+            const tax = baseTotal * 0.05;
+            const taxableAmount = baseTotal;
+            
+            // خصومات الأداء
+            let kpiDeduction = 0;
+            if (kpiPercentage < 80) kpiDeduction = baseTotal * 0.10;
+            else if (kpiPercentage < 90) kpiDeduction = baseTotal * 0.05;
+            
+            // الحجز (كفالة)
+            const retention = taxableAmount * 0.05;
+            
+            // الإجمالي النهائي
+            const totalDeductions = tax + kpiDeduction + violationsTotal + totalAbsentPenalties;
+            const finalTotal = baseTotal - totalDeductions;
+
+            const handleUserSubmit = () => { 
+                const d = { 
+                    id: `${month}-${selectedFacility}`, 
+                    month, 
+                    facilityId: selectedFacility, 
+                    status: 'SUBMITTED', 
+                    approvals: {}, 
+                    signatures: { enteredBy: currentUser.name },
+                    data: {
+                        employeeCosts,
+                        baseTotal,
+                        tax,
+                        kpiDeduction,
+                        violationsTotal,
+                        totalAbsentPenalties,
+                        retention,
+                        finalTotal
+                    }
+                }; 
+                storage.invoices.save([...storage.invoices.getAll().filter(i => i.id !== d.id), d]); 
+                setInvoiceData(d); 
+                showToast('تم التقديم'); 
+            };
+            
+            const handleContractorApprove = () => { 
+                if(invoiceData) { 
+                    const d = {
+                        ...invoiceData, 
+                        approvals: {...invoiceData.approvals, contractor: true}, 
+                        signatures: {...invoiceData.signatures, contractor: currentUser.name}
+                    }; 
+                    storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); 
+                    setInvoiceData(d); 
+                } 
+            };
+            
+            const handleManagerApprove = () => { 
+                if(invoiceData) { 
+                    const d = {
+                        ...invoiceData, 
+                        status: 'APPROVED', 
+                        approvals: {...invoiceData.approvals, deptManager: true}, 
+                        signatures: {...invoiceData.signatures, deptManager: currentUser.name}
+                    }; 
+                    storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); 
+                    setInvoiceData(d); 
+                } 
+            };
+            
+            const handleExport = () => exportToPDF('invoice-report', `Invoice-${month}.pdf`, 'landscape', { 
+                title: 'الفاتورة الشهرية', 
+                facility: facilities.find(f => f.id === selectedFacility)?.name || '', 
+                date: formatMonthYearArabic(month) 
+            });
 
             const isUser = currentUser.role === UserRole.USER || currentUser.role === UserRole.ADMIN;
 
-            if (currentUser.role === UserRole.DEPT_MANAGER && (!invoiceData || invoiceData.status === 'PENDING')) return <div className="p-8 text-center text-gray-500">لم يتم تقديم الفاتورة للاعتماد</div>;
+            if (currentUser.role === UserRole.DEPT_MANAGER && (!invoiceData || invoiceData.status === 'PENDING')) {
+                return <div className="p-8 text-center text-gray-500">لم يتم تقديم الفاتورة للاعتماد</div>;
+            }
 
             return (
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded shadow flex flex-wrap gap-4 no-print">
-                        <h2 className="text-xl font-bold flex-1">الفاتورة</h2>
-                        {canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}
+                        <h2 className="text-xl font-bold flex-1">الفاتورة الشهرية</h2>
+                        {canSelect && (
+                            <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">
+                                {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                            </select>
+                        )}
                         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
                         
-                        {isUser && (!invoiceData || invoiceData.status === 'PENDING') && <button onClick={handleUserSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">تقديم للاعتماد</button>}
-                        {invoiceData && invoiceData.status === 'SUBMITTED' && isUser && <span className="text-green-600 font-bold px-4 py-2">تم التقديم</span>}
-                        {invoiceData && !invoiceData.approvals.contractor && currentUser.role === UserRole.CONTRACTOR && <button onClick={handleContractorApprove} className="bg-purple-600 text-white px-4 py-2 rounded">اعتماد مقاول</button>}
-                        {invoiceData && !invoiceData.approvals.deptManager && currentUser.role === UserRole.DEPT_MANAGER && <button onClick={handleManagerApprove} className="bg-gold text-white px-4 py-2 rounded">اعتماد نهائي</button>}
-                        <button onClick={handleExport} className="bg-gray-600 text-white px-4 py-2 rounded">PDF</button>
+                        {isUser && (!invoiceData || invoiceData.status === 'PENDING') && (
+                            <button onClick={handleUserSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">
+                                تقديم للاعتماد
+                            </button>
+                        )}
+                        {invoiceData && invoiceData.status === 'SUBMITTED' && isUser && (
+                            <span className="text-green-600 font-bold px-4 py-2">تم التقديم</span>
+                        )}
+                        {invoiceData && !invoiceData.approvals.contractor && currentUser.role === UserRole.CONTRACTOR && (
+                            <button onClick={handleContractorApprove} className="bg-purple-600 text-white px-4 py-2 rounded">
+                                اعتماد مقاول
+                            </button>
+                        )}
+                        {invoiceData && !invoiceData.approvals.deptManager && currentUser.role === UserRole.DEPT_MANAGER && (
+                            <button onClick={handleManagerApprove} className="bg-gold text-white px-4 py-2 rounded">
+                                اعتماد نهائي
+                            </button>
+                        )}
+                        <button onClick={handleExport} className="bg-gray-600 text-white px-4 py-2 rounded">تصدير PDF</button>
                     </div>
+                    
                     <div id="invoice-report" className="bg-white p-4 rounded shadow mt-6">
-                        <table className="w-full border-collapse border border-gray-400 text-sm mb-2">
-                            <thead><tr className="bg-gray-100"><th className="border p-1">البند</th><th className="border p-1">العدد</th><th className="border p-1">الراتب</th><th className="border p-1">الاجمالي</th></tr></thead>
+                        {/* رأس الفاتورة */}
+                        <div className="invoice-header text-center mb-6">
+                            <h1 className="text-2xl font-bold mb-2">إدارة الصحة العامة</h1>
+                            <h2 className="text-xl font-bold mb-4">الفاتورة الشهرية</h2>
+                            <div className="flex justify-between text-sm">
+                                <div className="text-right">
+                                    <p><strong>عقد رقم:</strong> ________</p>
+                                    <p><strong>عن شهر:</strong> {formatMonthYearArabic(month)}</p>
+                                </div>
+                                <div className="text-left">
+                                    <p><strong>اسم المسلخ:</strong> {facilities.find(f => f.id === selectedFacility)?.name || ''}</p>
+                                    <p><strong>الشركة المشغلة:</strong> ________</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* جدول الموظفين الأساسيين */}
+                        <table className="invoice-table mb-4">
+                            <thead>
+                                <tr>
+                                    <th rowSpan="2">م</th>
+                                    <th rowSpan="2">الفئة</th>
+                                    <th rowSpan="2">عدد العمالة</th>
+                                    <th rowSpan="2">الراتب الشهري</th>
+                                    <th rowSpan="2">التكلفة الشهرية</th>
+                                    <th rowSpan="2">الراتب اليومي</th>
+                                    <th rowSpan="2">عدد أيام الشهر</th>
+                                    <th colSpan="3">الحضور</th>
+                                    <th rowSpan="2">الراتب المستحق</th>
+                                </tr>
+                                <tr>
+                                    <th>المتوقع</th>
+                                    <th>الفعلي</th>
+                                    <th>الغياب</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                {INVOICE_STRUCTURE.map((item, i) => <tr key={i}><td className="border p-1">{item.role}</td><td className="border p-1">{item.count}</td><td className="border p-1">{item.salary}</td><td className="border p-1">{(item.count * item.salary).toLocaleString()}</td></tr>)}
-                                <tr><td className="border p-1">مواد تنظيف</td><td className="border p-1">-</td><td className="border p-1">-</td><td className="border p-1">{CLEANING_MATERIAL_COST.toLocaleString()}</td></tr>
-                                {extraLabor && <tr className="text-blue-600 font-bold"><td className="border p-1">+</td><td colSpan={2} className="border p-1">عمالة إضافية</td><td className="border p-1">{extraCost.toLocaleString()}</td></tr>}
-                                <tr className="bg-gray-50 font-bold"><td colSpan={3} className="border p-1">الاجمالي</td><td className="border p-1">{subTotal.toLocaleString()}</td></tr>
-                                <tr><td colSpan={3} className="border p-1 text-red-500">خصم مخالفات</td><td className="border p-1 text-red-500">{violationsTotal}</td></tr>
-                                <tr><td colSpan={3} className="border p-1 text-red-500">خصم أداء ({kpiPercentage}%)</td><td className="border p-1 text-red-500">{kpiDeduction}</td></tr>
-                                <tr className="bg-gold text-white font-bold text-lg"><td colSpan={3} className="border p-2">الصافي</td><td className="border p-2">{finalTotal.toLocaleString()}</td></tr>
+                                {employeeCosts.map((item, index) => (
+                                    <tr key={index}>
+                                        <td>{index + 1}</td>
+                                        <td>{item.role}</td>
+                                        <td>{item.count}</td>
+                                        <td>{item.monthlySalary.toLocaleString()}</td>
+                                        <td>{(item.count * item.monthlySalary).toLocaleString()}</td>
+                                        <td>{item.dailySalary.toLocaleString()}</td>
+                                        <td>{item.expectedDays}</td>
+                                        <td>{item.expectedDays}</td>
+                                        <td>{item.actualDays}</td>
+                                        <td>{absentDays[item.role] || 0}</td>
+                                        <td>{item.netSalary.toLocaleString()}</td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
-                        <div className="text-center font-bold text-lg border-b-2 pb-2">{numberToArabicText(finalTotal)}</div>
-                        <div className="flex justify-between mt-4 text-sm">
-                            <div className="text-center w-1/3"><p className="font-bold">مدير الإدارة</p><p>{invoiceData?.signatures.deptManager || '---'}</p></div>
-                            <div className="text-center w-1/3"><p className="font-bold">المقاول</p><p>{invoiceData?.signatures.contractor || '---'}</p></div>
-                            <div className="text-center w-1/3"><p className="font-bold">الطبيب</p><p>{invoiceData?.signatures.enteredBy || '---'}</p></div>
+
+                        {/* العمالة الإضافية */}
+                        {extraLaborCost > 0 && (
+                            <div className="mb-4">
+                                <h3 className="font-bold mb-2">العمالة الإضافية:</h3>
+                                <table className="invoice-table">
+                                    <thead>
+                                        <tr>
+                                            <th>م</th>
+                                            <th>الفئة</th>
+                                            <th>عدد أيام الشهر</th>
+                                            <th>الراتب اليومي</th>
+                                            <th>الإجمالي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>جزار إضافي</td>
+                                            <td>{extraLabor?.items[0]?.days || 0}</td>
+                                            <td>{extraLabor?.items[0]?.dailyRate || 0}</td>
+                                            <td>{((extraLabor?.items[0]?.days || 0) * (extraLabor?.items[0]?.dailyRate || 0)).toLocaleString()}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>2</td>
+                                            <td>عامل نظافة إضافي</td>
+                                            <td>{extraLabor?.items[1]?.days || 0}</td>
+                                            <td>{extraLabor?.items[1]?.dailyRate || 0}</td>
+                                            <td>{((extraLabor?.items[1]?.days || 0) * (extraLabor?.items[1]?.dailyRate || 0)).toLocaleString()}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>3</td>
+                                            <td>حمال إضافي</td>
+                                            <td>{extraLabor?.items[2]?.days || 0}</td>
+                                            <td>{extraLabor?.items[2]?.dailyRate || 0}</td>
+                                            <td>{((extraLabor?.items[2]?.days || 0) * (extraLabor?.items[2]?.dailyRate || 0)).toLocaleString()}</td>
+                                        </tr>
+                                        <tr className="total-row">
+                                            <td colSpan="4">مجموع العمالة الإضافية</td>
+                                            <td>{extraLaborCost.toLocaleString()}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* معدات ومواد التنظيف */}
+                        <div className="mb-4">
+                            <h3 className="font-bold mb-2">معدات ومواد التنظيف والتطهير:</h3>
+                            <table className="invoice-table">
+                                <tbody>
+                                    <tr>
+                                        <td>تكلفة مواد التنظيف الشهرية</td>
+                                        <td colSpan="3"></td>
+                                        <td>{CLEANING_MATERIAL_COST.toLocaleString()}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* الملخص والحسابات */}
+                        <div className="mb-6 p-4 border border-gray-300 rounded">
+                            <h3 className="font-bold mb-3">تفاصيل المبلغ المستحق (الضريبة والغرامات ومؤشر الأداء):</h3>
+                            
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <p><strong>غرامة غياب المشرف:</strong> 250 درهم عن كل يوم غياب</p>
+                                    <p>عدد أيام الغياب: {absentDays['مشرف المسلخ'] || 0}</p>
+                                    <p>المبلغ: {(absentDays['مشرف المسلخ'] || 0) * 250} درهم</p>
+                                </div>
+                                <div>
+                                    <p><strong>غرامة غياب المحاسب والقصاب وعمال النظافة:</strong> 150 درهم عن كل يوم غياب</p>
+                                    <p>عدد أيام الغياب: {(absentDays['محاسب'] || 0) + (absentDays['قصاب'] || 0) + (absentDays['عامل نظافة'] || 0)}</p>
+                                    <p>المبلغ: {((absentDays['محاسب'] || 0) + (absentDays['قصاب'] || 0) + (absentDays['عامل نظافة'] || 0)) * 150} درهم</p>
+                                </div>
+                            </div>
+
+                            <div className="mb-4">
+                                <h4 className="font-bold mb-2">مؤشر الأداء الشهري:</h4>
+                                <p>مؤشر الأداء: {kpiPercentage}%</p>
+                                {kpiPercentage >= 90 && <p className="text-green-600">(لا يتم فرض أي غرامات)</p>}
+                                {kpiPercentage >= 80 && kpiPercentage < 90 && <p className="text-yellow-600">(يتم فرض غرامة 5% من قيمة الفاتورة الشهرية)</p>}
+                                {kpiPercentage < 80 && <p className="text-red-600">(يتم فرض غرامة 10% من قيمة الفاتورة الشهرية)</p>}
+                            </div>
+
+                            <table className="invoice-table mb-4">
+                                <tbody>
+                                    <tr>
+                                        <td>مجموع الرواتب الشهرية ومعدات ومواد التنظيف</td>
+                                        <td>{(totalSalaries + CLEANING_MATERIAL_COST).toLocaleString()}</td>
+                                    </tr>
+                                    {extraLaborCost > 0 && (
+                                        <tr>
+                                            <td>مجموع خدمات العمالة الإضافية</td>
+                                            <td>{extraLaborCost.toLocaleString()}</td>
+                                        </tr>
+                                    )}
+                                    <tr className="total-row">
+                                        <td>إجمالي قيمة الخدمات خلال الشهر</td>
+                                        <td>{baseTotal.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>الضريبة 5%</td>
+                                        <td>{tax.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>الغرامات والجزاءات</td>
+                                        <td>{violationsTotal.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>خصم الغياب</td>
+                                        <td>{totalAbsentPenalties.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>خصم مؤشر الأداء ({kpiPercentage}%)</td>
+                                        <td>{kpiDeduction.toLocaleString()}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>حجز (5%) كفالة حسن تنفيذ الأعمال</td>
+                                        <td>{retention.toLocaleString()}</td>
+                                    </tr>
+                                    <tr className="total-row" style={{ backgroundColor: '#f0db7d' }}>
+                                        <td><strong>الإجمالي المستحق للشهر</strong></td>
+                                        <td><strong>{finalTotal.toLocaleString()}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div className="text-center font-bold text-lg border-t-2 pt-4">
+                                {numberToArabicText(finalTotal)}
+                            </div>
+                        </div>
+
+                        {/* التوقيعات */}
+                        <div className="flex justify-between mt-8 pt-4 border-t">
+                            <div className="text-center w-1/3">
+                                <p className="font-bold mb-2">مدير الإدارة</p>
+                                <div className="h-12 border-b border-gray-400"></div>
+                                <p>{invoiceData?.signatures.deptManager || '_________'}</p>
+                            </div>
+                            <div className="text-center w-1/3">
+                                <p className="font-bold mb-2">ممثل المقاول</p>
+                                <div className="h-12 border-b border-gray-400"></div>
+                                <p>{invoiceData?.signatures.contractor || '_________'}</p>
+                            </div>
+                            <div className="text-center w-1/3">
+                                <p className="font-bold mb-2">الطبيب المناوب</p>
+                                <div className="h-12 border-b border-gray-400"></div>
+                                <p>{invoiceData?.signatures.enteredBy || '_________'}</p>
+                            </div>
+                        </div>
+
+                        {/* تذييل الفاتورة */}
+                        <div className="invoice-footer mt-6 text-center">
+                            <p>SH-KPI - نسخة الكترونية معتمدة</p>
+                            <p>الدورة: ________ - الدفعة رقم: ________</p>
                         </div>
                     </div>
                 </div>
