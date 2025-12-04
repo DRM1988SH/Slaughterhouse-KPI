@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -11,16 +12,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- React & ReactDOM -->
+    <!-- React & ReactDOM (UMD) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
-    <!-- React Router -->
+    <!-- React Router (UMD) -->
     <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
     <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
     <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
     
-    <!-- Babel for JSX -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script>
@@ -45,7 +46,6 @@
       body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; }
       .scrollbar-hide::-webkit-scrollbar { display: none; }
       
-      /* Toast Animation */
       @keyframes slideDown {
         from { transform: translate(-50%, -100%); opacity: 0; }
         to { transform: translate(-50%, 0); opacity: 1; }
@@ -54,46 +54,106 @@
         animation: slideDown 0.3s ease-out forwards;
       }
 
+      /* Print Styles */
       @media print {
-        .no-print { display: none !important; }
-        .print-only { display: block !important; }
-        body { background: white; -webkit-print-color-adjust: exact; }
+        @page {
+          margin: 0mm;
+        }
+        
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+
+        body {
+          margin: 0;
+          padding: 0;
+          background: white;
+          visibility: hidden;
+        }
+
+        body * {
+          visibility: hidden;
+        }
+        
+        /* Invoice Report - Landscape */
+        #invoice-report, #invoice-report * {
+          visibility: visible !important;
+        }
+        #invoice-report {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 297mm;
+          height: 210mm;
+          margin: 0;
+          padding: 5mm;
+          background: white;
+          z-index: 9999;
+          box-sizing: border-box;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: space-between !important;
+        }
+
+        /* KPI Report - Portrait */
+        #kpi-report, #kpi-report * {
+          visibility: visible !important;
+        }
+        #kpi-report {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 210mm;
+          height: 297mm;
+          margin: 0;
+          padding: 0;
+          background: white;
+          z-index: 9999;
+          box-sizing: border-box;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+
+        /* Monthly Report - Portrait */
+        #monthly-report-print, #monthly-report-print * {
+          visibility: visible !important;
+        }
+        #monthly-report-print {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 210mm;
+          height: 297mm;
+          margin: 0;
+          padding: 0;
+          background: white;
+          z-index: 9999;
+          box-sizing: border-box;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        
+        .no-print {
+          display: none !important;
+        }
       }
 
-      /* Invoice specific styles */
-      .invoice-table {
-        border-collapse: collapse;
-        width: 100%;
-        font-size: 12px;
-      }
-      .invoice-table th {
-        background-color: #f0f0f0;
-        border: 1px solid #000;
-        padding: 4px;
-        text-align: center;
-        font-weight: bold;
-      }
-      .invoice-table td {
-        border: 1px solid #000;
-        padding: 4px;
-        text-align: center;
-      }
-      .invoice-table .total-row td {
-        background-color: #f0f0f0;
-        font-weight: bold;
-      }
-      .invoice-header {
-        background-color: #f0db7d;
-        padding: 20px;
-        border-bottom: 2px solid #000;
-      }
-      .invoice-footer {
-        background-color: #f0db7d;
-        padding: 10px;
-        border-top: 2px solid #000;
-        font-size: 11px;
-      }
+      .invoice-table { border-collapse: collapse; width: 100%; font-size: inherit; }
+      .invoice-table th { background-color: #f3f4f6; border: 1px solid #000; padding: 2px; text-align: center; font-weight: bold; color: #000; }
+      .invoice-table td { border: 1px solid #000; padding: 1px 3px; text-align: center; vertical-align: middle; }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.10.1"
+  }
+}
+</script>
 </head>
 <body>
     <div id="root"></div>
@@ -102,11 +162,11 @@
         const { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } = ReactRouterDOM;
         const { useState, useEffect, Fragment, useContext, createContext } = React;
 
-        // --- CONTEXT FOR TOAST ---
+        // --- CONTEXT ---
         const ToastContext = createContext(null);
         const useToast = () => useContext(ToastContext);
 
-        // --- TYPES & ENUMS ---
+        // --- TYPES ---
         const UserRole = {
             ADMIN: 'ADMIN',
             DEPT_MANAGER: 'DEPT_MANAGER',
@@ -115,7 +175,7 @@
             USER: 'USER'
         };
 
-        // --- CONSTANTS ---
+        // --- DATA CONSTANTS ---
         const INITIAL_USERS = [
             { id: '70062', name: 'مصعب علي', role: UserRole.ADMIN },
             { id: '12345', name: 'عمر سعيد ', role: UserRole.DEPT_MANAGER },
@@ -124,7 +184,6 @@
             { id: '99999', name: 'محمد عمر', role: UserRole.USER, facilityId: '1' },
         ];
 
-        // تحديث: إضافة بيانات المشغلين وأرقام العقود
         const INITIAL_FACILITIES = [
             { 
                 id: '1', 
@@ -245,29 +304,42 @@
         };
         const setStorage = (key, val) => localStorage.setItem(key, JSON.stringify(val));
 
-        const storage = {
-            users: { getAll: () => getStorage('users', INITIAL_USERS), save: (v) => setStorage('users', v) },
-            facilities: { getAll: () => getStorage('facilities', INITIAL_FACILITIES), save: (v) => setStorage('facilities', v) },
-            employees: { getAll: () => getStorage('employees', INITIAL_EMPLOYEES), save: (v) => setStorage('employees', v) },
-            items: { getAll: () => getStorage('items', INITIAL_ITEMS), save: (v) => setStorage('items', v) },
-            violationTypes: { getAll: () => getStorage('violationTypes', INITIAL_VIOLATIONS), save: (v) => setStorage('violationTypes', v) },
+        // Simple Event Bus
+        const listeners = [];
+        const subscribe = (listener) => {
+            listeners.push(listener);
+            return () => {
+                const index = listeners.indexOf(listener);
+                if (index > -1) listeners.splice(index, 1);
+            };
+        };
+        const notifyChange = () => listeners.forEach(l => l());
+
+        const DataService = {
+            subscribe,
+            users: { getAll: () => getStorage('users', INITIAL_USERS), save: (v) => { setStorage('users', v); notifyChange(); } },
+            facilities: { getAll: () => getStorage('facilities', INITIAL_FACILITIES), save: (v) => { setStorage('facilities', v); notifyChange(); } },
+            employees: { getAll: () => getStorage('employees', INITIAL_EMPLOYEES), save: (v) => { setStorage('employees', v); notifyChange(); } },
+            items: { getAll: () => getStorage('items', INITIAL_ITEMS), save: (v) => { setStorage('items', v); notifyChange(); } },
+            violationTypes: { getAll: () => getStorage('violationTypes', INITIAL_VIOLATIONS), save: (v) => { setStorage('violationTypes', v); notifyChange(); } },
             evaluations: { 
                 getAll: () => getStorage('evaluations', []), 
-                save: (v) => setStorage('evaluations', v),
+                save: (v) => { setStorage('evaluations', v); notifyChange(); },
                 add: (entry) => {
                     const list = getStorage('evaluations', []);
                     const existingIdx = list.findIndex(e => e.date === entry.date && e.facilityId === entry.facilityId);
                     if (existingIdx >= 0) list[existingIdx] = entry;
                     else list.push(entry);
                     setStorage('evaluations', list);
+                    notifyChange();
                 }
             },
-            violations: { getAll: () => getStorage('violations', []), save: (v) => setStorage('violations', v) },
-            extraLabor: { getAll: () => getStorage('extraLabor', []), save: (v) => setStorage('extraLabor', v) },
-            invoices: { getAll: () => getStorage('invoices', []), save: (v) => setStorage('invoices', v) },
-            monthlyReports: { getAll: () => getStorage('monthlyReports', []), save: (v) => setStorage('monthlyReports', v) },
-            kpiReports: { getAll: () => getStorage('kpiReports', []), save: (v) => setStorage('kpiReports', v) },
-            settings: { get: () => getStorage('appSettings', {}), save: (v) => setStorage('appSettings', v) }
+            violations: { getAll: () => getStorage('violations', []), save: (v) => { setStorage('violations', v); notifyChange(); } },
+            extraLabor: { getAll: () => getStorage('extraLabor', []), save: (v) => { setStorage('extraLabor', v); notifyChange(); } },
+            invoices: { getAll: () => getStorage('invoices', []), save: (v) => { setStorage('invoices', v); notifyChange(); } },
+            monthlyReports: { getAll: () => getStorage('monthlyReports', []), save: (v) => { setStorage('monthlyReports', v); notifyChange(); } },
+            kpiReports: { getAll: () => getStorage('kpiReports', []), save: (v) => { setStorage('kpiReports', v); notifyChange(); } },
+            settings: { get: () => getStorage('appSettings', {}), save: (v) => { setStorage('appSettings', v); notifyChange(); } }
         };
 
         // --- UTILS ---
@@ -320,6 +392,16 @@
 
         const getCurrentDateTime = () => new Date().toLocaleString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+        const isApplicable = (item, emp) => {
+            const title = emp.jobTitle;
+            if (['i1', 'i15', 'i16', 'i8', 'i9', 'i10'].includes(item.id)) return true;
+            if (['i2', 'i3', 'i4', 'i5', 'i6', 'i7', 'i18'].includes(item.id)) return title === 'مشرف المسلخ';
+            if (['i12', 'i14'].includes(item.id)) return title === 'عامل نظافة' || title === 'مشرف النظافة' || title === 'حمال';
+            if (['i17', 'i11', 'i13'].includes(item.id)) return title === 'قصاب';
+            if (item.id === 'i19') return title === 'محاسب';
+            return false;
+        };
+
         const textToImage = (text, options) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -343,7 +425,7 @@
         const exportToPDF = (elementId, fileName, orientation, headerInfo, options = { repeatHeader: true }) => {
             const element = document.getElementById(elementId);
             if (!element) return;
-            const settings = storage.settings.get();
+            const settings = DataService.settings.get();
             const logo = settings.logo;
             const themeColor = '#F0DB7D';
             const pxToIn = (px) => px / 96;
@@ -365,12 +447,10 @@
                     const pageWidth = pdf.internal.pageSize.getWidth();
                     const pageHeight = pdf.internal.pageSize.getHeight();
                     
-                    // زيادة حجم الخط للعناوين
                     let titleImg = headerInfo ? textToImage(headerInfo.title, { fontSize: 28, color: '#000000', align: 'center', width: 600 }) : '';
                     let dateImg = headerInfo ? textToImage(headerInfo.date, { fontSize: 22, color: '#000000', align: 'right', width: 300 }) : '';
                     let facilityImg = headerInfo ? textToImage(headerInfo.facility, { fontSize: 22, color: '#000000', align: 'left', width: 300 }) : '';
                     
-                    // زيادة حجم خط "نسخة الكترونية معتمدة" بشكل كبير
                     const authTextImg = textToImage("نسخة الكترونية معتمدة", { fontSize: 30, color: '#000000', align: 'center', width: 500, fontWeight: 'bold' });
 
                     for (let i = 1; i <= totalPages; i++) {
@@ -385,7 +465,6 @@
                             }
                         }
                         if (i === 1) {
-                            // رفع الموقع والتاريخ إلى أعلى مع مسافة أكبر
                             if (titleImg) pdf.addImage(titleImg, 'PNG', (pageWidth - 3.0) / 2, hHeight + 0.05, 3.0, 0.5);
                             if (dateImg) pdf.addImage(dateImg, 'PNG', pageWidth - 2.0 - 0.2, hHeight + 0.9, 2.0, 0.25);
                             if (facilityImg) pdf.addImage(facilityImg, 'PNG', 0.2, hHeight + 0.9, 2.0, 0.25);
@@ -397,40 +476,46 @@
                         pdf.text("SH-KPI", 0.1, yText);
                         pdf.text(`Page ${i} of ${totalPages}`, pageWidth - 0.1, yText, { align: 'right' });
                         if (authTextImg) {
-                            // زيادة حجم الصورة لتتناسب مع حجم الخط الجديد الكبير
                             const imgH = fHeight - 0.05; 
-                            const imgW = imgH * 5.5; // زيادة العرض لتتناسب مع حجم الخط الكبير جداً
+                            const imgW = imgH * 5.5; 
                             pdf.addImage(authTextImg, 'PNG', (pageWidth - imgW) / 2, pageHeight - fHeight + 0.02, imgW, imgH);
                         }
                     }
                 }).save();
-            } else { alert('مكتبة PDF غير محملة.'); window.print(); }
-        };
-
-        const isApplicable = (item, emp) => {
-            const title = emp.jobTitle;
-            if (['i1', 'i15', 'i16', 'i8', 'i9', 'i10'].includes(item.id)) return true;
-            if (['i2', 'i3', 'i4', 'i5', 'i6', 'i7', 'i18'].includes(item.id)) return title === 'مشرف المسلخ';
-            if (['i12', 'i14'].includes(item.id)) return title === 'عامل نظافة' || title === 'مشرف النظافة' || title === 'حمال';
-            if (['i17', 'i11', 'i13'].includes(item.id)) return title === 'قصاب';
-            if (item.id === 'i19') return title === 'محاسب';
-            return false;
+            } else { 
+                alert('مكتبة PDF غير محملة.'); 
+                window.print(); 
+            }
         };
 
         // --- COMPONENTS ---
         
-        // TOAST COMPONENT
-        const Toast = ({ message, onClose }) => {
+        // TOAST
+        const Toast = ({ message, type, onClose }) => {
             useEffect(() => {
-                const timer = setTimeout(onClose, 2000);
+                const timer = setTimeout(onClose, 3000);
                 return () => clearTimeout(timer);
             }, [onClose]);
 
+            const bgClass = type === 'error' ? 'bg-red-600' : 'bg-green-600';
+            const iconClass = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+
             return (
-                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 flex items-center gap-2 toast-animate">
-                    <i className="fa fa-check-circle text-xl"></i>
+                <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 ${bgClass} text-white px-6 py-3 rounded-lg shadow-xl z-[9999] flex items-center gap-2 toast-animate`}>
+                    <i className={`fa ${iconClass} text-xl`}></i>
                     <span className="font-bold">{message}</span>
                 </div>
+            );
+        };
+
+        const ToastProvider = ({ children }) => {
+            const [toast, setToast] = useState(null);
+            const showToast = (msg, type = 'success') => setToast({ message: msg, type });
+            return (
+                <ToastContext.Provider value={{ showToast }}>
+                    {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+                    {children}
+                </ToastContext.Provider>
             );
         };
 
@@ -438,15 +523,15 @@
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [error, setError] = useState('');
-            const settings = storage.settings.get();
+            const settings = DataService.settings.get();
             const handleLogin = (e) => {
                 e.preventDefault();
-                const users = storage.users.getAll();
+                const users = DataService.users.getAll();
                 const user = users.find(u => u.id === id);
                 if (user) onLogin(user); else setError('الرمز الوظيفي غير صحيح');
             };
             return (
-                <div className="min-h-screen w-full flex items-center justify-center bg-gray-800 relative">
+                <div className="min-h-screen w-full flex items-center justify-center bg-gray-800 relative" dir="rtl">
                     {settings.loginBackground && <div className="absolute inset-0 bg-cover bg-center z-0" style={{ backgroundImage: `url(${settings.loginBackground})`, opacity: 0.5 }}></div>}
                     <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md z-10 text-center relative">
                         <h2 className="text-2xl font-bold mb-6 text-gold-dark">تسجيل الدخول</h2>
@@ -470,12 +555,18 @@
             const [dateTime, setDateTime] = useState(getCurrentDateTime());
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [violationCount, setViolationCount] = useState(0);
-            const settings = storage.settings.get();
+            const settings = DataService.settings.get();
 
             useEffect(() => { const t = setInterval(() => setDateTime(getCurrentDateTime()), 1000); return () => clearInterval(t); }, []);
+            
             useEffect(() => {
-                const count = storage.violations.getAll().filter(v => (currentUser.role === UserRole.ADMIN || v.facilityId === currentUser.facilityId) && v.status === 'OPEN').length;
-                setViolationCount(count);
+                const updateCount = () => {
+                    const count = DataService.violations.getAll().filter(v => (currentUser.role === UserRole.ADMIN || v.facilityId === currentUser.facilityId) && v.status === 'OPEN').length;
+                    setViolationCount(count);
+                };
+                updateCount();
+                const unsubscribe = DataService.subscribe(updateCount);
+                return () => unsubscribe();
             }, [location.pathname, currentUser]);
 
             const menuItems = [
@@ -490,7 +581,7 @@
             ];
 
             return (
-                <div className="flex h-screen bg-gray-100 overflow-hidden">
+                <div className="flex h-screen bg-gray-100 overflow-hidden" dir="rtl">
                     <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} bg-white shadow-lg transition-all duration-300 flex flex-col no-print`}>
                         <div className="h-[150px] flex items-center justify-center border-b p-4">
                             {settings.logo ? <img src={settings.logo} className="max-h-full max-w-full object-contain" /> : <div className="text-gray-400 text-center"><i className="fa fa-image fa-3x"></i><br/>شعار المؤسسة</div>}
@@ -519,7 +610,7 @@
 
         // PAGES
         
-        // Daily Eval (FULL LOGIC) - الحل الصحيح 100%
+        // Daily Eval
         const DailyEvaluationPage = ({ currentUser }) => {
             const { showToast } = useToast();
             const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -531,7 +622,6 @@
             const [isUpdateMode, setIsUpdateMode] = useState(false);
             const [facilityName, setFacilityName] = useState('');
             const [todaysViolations, setTodaysViolations] = useState([]);
-            const [lastRefresh, setLastRefresh] = useState(Date.now());
             const [facilities, setFacilities] = useState([]);
             const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
             const [performanceIndex, setPerformanceIndex] = useState(100);
@@ -539,24 +629,24 @@
             const isAdmin = currentUser.role === UserRole.ADMIN;
 
             useEffect(() => {
-                setItems(storage.items.getAll());
-                setViolationTypes(storage.violationTypes.getAll());
-                setFacilities(storage.facilities.getAll());
+                setItems(DataService.items.getAll());
+                setViolationTypes(DataService.violationTypes.getAll());
+                setFacilities(DataService.facilities.getAll());
                 if (!isAdmin && currentUser.facilityId) setSelectedFacility(currentUser.facilityId);
             }, [currentUser, isAdmin]);
 
             useEffect(() => {
                 const f = facilities.find(fac => fac.id === selectedFacility);
                 setFacilityName(f ? f.name : 'المسلخ الرئيسي');
-                const allEmps = storage.employees.getAll();
+                const allEmps = DataService.employees.getAll();
                 setEmployees(allEmps.filter(e => e.facilityId === selectedFacility));
             }, [selectedFacility, facilities]);
 
             useEffect(() => {
                 const load = () => {
-                    const all = storage.violations.getAll();
+                    const all = DataService.violations.getAll();
                     setTodaysViolations(all.filter(v => v.date === date && v.facilityId === selectedFacility));
-                    const allEvals = storage.evaluations.getAll();
+                    const allEvals = DataService.evaluations.getAll();
                     const existing = allEvals.find(e => e.date === date && e.facilityId === selectedFacility);
                     if (existing) {
                         setScores(existing.scores);
@@ -566,7 +656,7 @@
                         calculateUnresolvedFailures(existing.scores, all.filter(v => v.date === date && v.facilityId === selectedFacility));
                     } else {
                         const initScores = {};
-                        storage.items.getAll().forEach(item => {
+                        DataService.items.getAll().forEach(item => {
                             employees.forEach(emp => { if (isApplicable(item, emp)) initScores[`${item.id}_${emp.id}`] = true; });
                         });
                         setScores(initScores);
@@ -577,7 +667,7 @@
                     }
                 };
                 if(employees.length > 0) load();
-            }, [date, selectedFacility, lastRefresh, employees]);
+            }, [date, selectedFacility, employees]);
 
             const calculatePerformanceIndex = (currentScores) => {
                 const total = Object.keys(currentScores).length;
@@ -598,10 +688,7 @@
                         const item = items.find(i => i.id === itemId);
                         const emp = employees.find(e => e.id === empId);
                         if (item && emp && item.linkedViolationId) {
-                            // نحسب عدد المخالفات المسجلة لهذا النوع
                             const violationCount = violations.filter(v => v.violationTypeId === item.linkedViolationId).length;
-                            
-                            // نحسب عدد مرات ظهور هذا البند فاشلاً
                             let failureCount = 0;
                             Object.entries(currentScores).forEach(([k, p]) => {
                                 if (!p) {
@@ -613,12 +700,10 @@
                                 }
                             });
                             
-                            // إذا كان هناك مخالفات غير مسجلة
                             if (failureCount > violationCount) {
                                 failedItems.push({ key, item, emp });
                             }
                         } else if (item && emp && !item.linkedViolationId) {
-                            // للبنود بدون مخالفات مرتبطة
                             failedItems.push({ key, item, emp });
                         }
                     }
@@ -650,10 +735,10 @@
                     status: 'OPEN', 
                     facilityId: selectedFacility 
                 };
-                storage.violations.save([...storage.violations.getAll(), newV]);
+                DataService.violations.save([...DataService.violations.getAll(), newV]);
                 setTodaysViolations(prev => [...prev, newV]);
                 calculateUnresolvedFailures(scores, [...todaysViolations, newV]);
-                showToast(`تم تسجيل مخالفة: ${vType.name}`);
+                showToast(`تم تسجيل مخالفة: ${vType.name}`, 'error');
             };
 
             const handleEdit = () => {
@@ -677,7 +762,7 @@
                     performanceIndex: performanceIndex
                 };
                 
-                storage.evaluations.add(ev);
+                DataService.evaluations.add(ev);
                 setSubmitted(true);
                 setIsUpdateMode(true);
                 showToast(`تم الاعتماد. مؤشر الأداء النهائي: ${performanceIndex}%`);
@@ -795,24 +880,29 @@
         const ViolationsPage = ({ currentUser }) => {
             const [violations, setViolations] = useState([]);
             const [filterMonth, setFilterMonth] = useState(new Date().toISOString().slice(0, 7));
-            const [facilities, setFacilities] = useState([]);
+            const [facilities, setFacilities] = useState(DataService.facilities.getAll());
             const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
             const canSelect = [UserRole.ADMIN, UserRole.DEPT_MANAGER, UserRole.SECTION_HEAD].includes(currentUser.role);
 
-            useEffect(() => { setFacilities(storage.facilities.getAll()); if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, [currentUser]);
+            useEffect(() => { 
+                setFacilities(DataService.facilities.getAll()); 
+                if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); 
+            }, [currentUser, canSelect]);
+
             useEffect(() => {
-                let filtered = storage.violations.getAll();
+                let filtered = DataService.violations.getAll();
                 filtered = filtered.filter(v => v.facilityId === selectedFacility);
                 if (filterMonth) filtered = filtered.filter(v => v.date.startsWith(filterMonth));
                 setViolations(filtered);
             }, [filterMonth, selectedFacility]);
 
             const closeV = (id) => {
-                const all = storage.violations.getAll();
+                const all = DataService.violations.getAll();
                 const updated = all.map(v => v.id === id ? { ...v, status: 'CLOSED' } : v);
-                storage.violations.save(updated);
+                DataService.violations.save(updated);
                 setViolations(prev => prev.map(v => v.id === id ? { ...v, status: 'CLOSED' } : v));
             };
+
             const handleExport = () => exportToPDF('violation-report', `Violations-${filterMonth}.pdf`, 'portrait', { title: 'سجل المخالفات', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(filterMonth) });
 
             return (
@@ -846,14 +936,19 @@
             const [employees, setEmployees] = useState([]);
             const [evaluations, setEvaluations] = useState([]);
             const [daysInMonth, setDaysInMonth] = useState([]);
-            const [facilities, setFacilities] = useState([]);
+            const [facilities, setFacilities] = useState(DataService.facilities.getAll());
             const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
             const canSelect = [UserRole.ADMIN, UserRole.SECTION_HEAD].includes(currentUser.role);
 
-            useEffect(() => { setItems(storage.items.getAll()); setFacilities(storage.facilities.getAll()); if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, []);
+            useEffect(() => { 
+                setItems(DataService.items.getAll()); 
+                setFacilities(DataService.facilities.getAll()); 
+                if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); 
+            }, [currentUser, canSelect]);
+
             useEffect(() => {
-                setEmployees(storage.employees.getAll().filter(e => e.facilityId === selectedFacility));
-                const filtered = storage.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
+                setEmployees(DataService.employees.getAll().filter(e => e.facilityId === selectedFacility));
+                const filtered = DataService.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
                 setEvaluations(filtered);
                 const days = new Date(parseInt(month.split('-')[0]), parseInt(month.split('-')[1]), 0).getDate();
                 const arr = []; for(let i=1; i<=days; i++) arr.push(`${month}-${String(i).padStart(2, '0')}`);
@@ -866,6 +961,7 @@
                 if (!ev) return 'pending';
                 return ev.scores[`${item.id}_${emp.id}`] ? 'pass' : 'fail';
             };
+            
             const handleExport = () => exportToPDF('monthly-eval-report', `Monthly-Eval-${month}.pdf`, 'landscape', { title: 'التقييم الشهري', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) }, { repeatHeader: false });
 
             return (
@@ -888,134 +984,314 @@
         const MonthlyReportPage = ({ currentUser }) => {
             const { showToast } = useToast();
             const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-            const [facilities, setFacilities] = useState([]);
+            const [facilities, setFacilities] = useState(DataService.facilities.getAll());
             const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
-            const [violations, setViolations] = useState([]);
-            const [notes, setNotes] = useState('');
-            const [isApproved, setIsApproved] = useState(false);
-            const [isSubmitted, setIsSubmitted] = useState(false);
-            const canSelect = [UserRole.ADMIN, UserRole.SECTION_HEAD].includes(currentUser.role);
-            const isVet = [UserRole.USER, UserRole.ADMIN].includes(currentUser.role);
+            const [reportData, setReportData] = useState(null);
+            const [facilityDetails, setFacilityDetails] = useState(null);
 
-            useEffect(() => { setFacilities(storage.facilities.getAll()); if (!canSelect && !currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, []);
+            const canSelect = [UserRole.ADMIN, UserRole.SECTION_HEAD, UserRole.DEPT_MANAGER].includes(currentUser.role);
+
+            useEffect(() => { 
+                setFacilities(DataService.facilities.getAll()); 
+                if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); 
+            }, [canSelect, currentUser]);
+
             useEffect(() => {
-                setViolations(storage.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility));
-                const r = storage.monthlyReports.getAll().find(r => r.month === month && r.facilityId === selectedFacility);
-                if (r) { setNotes(r.notes); setIsApproved(r.approvedBySectionHead); setIsSubmitted(r.submitted); }
-                else { setNotes(''); setIsApproved(false); setIsSubmitted(false); }
-            }, [month, selectedFacility]);
+                const fac = facilities.find(f => f.id === selectedFacility);
+                setFacilityDetails(fac || null);
 
-            const groupedViolations = violations.reduce((acc, curr) => { acc[curr.violationName] = (acc[curr.violationName] || 0) + curr.count; return acc; }, {});
-            const handleSubmit = () => {
-                const list = storage.monthlyReports.getAll();
-                const data = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, notes, submitted: true, approvedBySectionHead: false };
-                const idx = list.findIndex(r => r.id === data.id);
-                if (idx >= 0) list[idx] = { ...list[idx], ...data }; else list.push(data);
-                storage.monthlyReports.save(list); setIsSubmitted(true); showToast('تم التقديم');
-            };
-            const handleApprove = () => {
-                const list = storage.monthlyReports.getAll();
-                const data = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, notes, submitted: true, approvedBySectionHead: true };
-                const idx = list.findIndex(r => r.id === data.id);
-                if (idx >= 0) list[idx] = data; else list.push(data);
-                storage.monthlyReports.save(list); setIsApproved(true);
-            };
-            const handleExport = () => exportToPDF('monthly-report', `MR-${month}.pdf`, 'portrait', { title: 'التقرير الشهري', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) });
+                let supervisorAbsence = 0;
+                let workerAbsence = 0;
+                const evals = DataService.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
+                const emps = DataService.employees.getAll().filter(e => e.facilityId === selectedFacility);
+                
+                evals.forEach(ev => {
+                    emps.forEach(emp => {
+                        const isPresent = ev.scores[`i1_${emp.id}`];
+                        if (isPresent === false) { 
+                            if (emp.jobTitle.includes('مشرف')) supervisorAbsence++;
+                            else workerAbsence++;
+                        }
+                    });
+                });
 
-            if (currentUser.role === UserRole.SECTION_HEAD && !isSubmitted) return <div className="p-8 text-center text-gray-500">لم يتم تقديم التقرير بعد</div>;
+                const monthViolations = DataService.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility);
+                
+                const safetyCount = monthViolations.filter(v => ['v8', 'v9', 'v11', 'v15', 'v16', 'v5', 'v6', 'v7', 'v10'].includes(v.violationTypeId)).length;
+                const hygieneCount = monthViolations.filter(v => ['v12', 'v13', 'v14', 'v17'].includes(v.violationTypeId)).length;
+                const labCount = monthViolations.filter(v => v.violationTypeId === 'v18').length; 
+
+                setReportData({ supervisorAbsence, workerAbsence, safetyCount, hygieneCount, labCount });
+
+            }, [month, selectedFacility, facilities]);
+
+            const handleExport = () => {
+                const element = document.getElementById('monthly-report-print');
+                if (!element) return;
+                const opt = { margin: 0, filename: `MonthlyReport-${month}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                if (window.html2pdf) { window.html2pdf().from(element).set(opt).save(); } else { window.print(); }
+            };
+
+            const employeesString = INVOICE_EMPLOYEE_STRUCTURE.map(e => `${e.role}`).join(' / ');
 
             return (
                 <div className="space-y-6">
-                    <div className="bg-white p-4 rounded shadow flex justify-between no-print">
+                    <div className="bg-white p-4 rounded shadow flex justify-between items-center no-print">
                         <h2 className="text-xl font-bold">التقرير الشهري</h2>
-                        <div className="flex gap-2">{canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}<input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" /><button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded">PDF</button></div>
+                        <div className="flex gap-2">
+                            {canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}
+                            <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
+                            <button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2"><i className="fa fa-file-pdf"></i> PDF</button>
+                        </div>
                     </div>
-                    <div id="monthly-report" className="bg-white p-8 rounded shadow mt-6">
-                        <table className="w-full border-collapse border border-gray-300 mb-6">
-                            <thead><tr className="bg-gray-100"><th className="border p-3">البند</th><th className="border p-3">العدد</th></tr></thead>
-                            <tbody>{Object.entries(groupedViolations).map(([name, count]) => (<tr key={name}><td className="border p-2">{name}</td><td className="border p-2 text-center text-red-600 font-bold">{count}</td></tr>))}</tbody>
-                        </table>
-                        <textarea className="w-full border p-3 rounded h-32" value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات..." readOnly={isApproved || (currentUser.role === UserRole.SECTION_HEAD && isSubmitted)}></textarea>
-                        <div className="flex justify-between mt-8 border-t pt-4">
-                            <div className="text-center"><p className="font-bold">الطبيب البيطري</p>{isVet && !isSubmitted && <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-1 rounded mt-2 no-print">تقديم</button>}{isSubmitted && <p className="text-blue-600 text-xs">تم التقديم {currentUser.name}</p>}</div>
-                            <div className="text-center"><p className="font-bold">رئيس الشعبة</p>{currentUser.role === UserRole.SECTION_HEAD && !isApproved && isSubmitted && <button onClick={handleApprove} className="bg-gold text-white px-6 py-2 rounded mt-2 no-print">اعتماد</button>}{isApproved && <p className="text-green-600 font-bold">معتمد</p>}</div>
+
+                    <div id="monthly-report-print" className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] p-4 text-xs font-sans text-black flex flex-col relative">
+                        <div className="flex justify-between items-stretch mb-1 border-2 border-[#b8860b] h-20 bg-[#c5b358]">
+                             <div className="w-1/4 flex items-center justify-center p-2"></div>
+                            <div className="w-1/2 flex flex-col items-center justify-center text-black font-bold">
+                                <h1 className="text-xl mb-1">إدارة الصحة العامة</h1>
+                                <h2 className="text-lg">مسلخ {facilityDetails?.location.split('-')[0] || '....'}</h2>
+                            </div>
+                            <div className="w-1/4 flex items-center justify-center p-2 border-r-2 border-[#b8860b]">
+                                 {DataService.settings.get().logo ? (
+                                    <img src={DataService.settings.get().logo} alt="Logo" className="max-h-16 max-w-full object-contain mix-blend-multiply" />
+                                ) : <span className="text-xl font-bold">Logo</span>}
+                            </div>
+                        </div>
+
+                        <div className="bg-[#8b4513] text-white text-center font-bold py-1 border-2 border-[#8b4513] mb-1">التقرير الشهري عن متعهد المسلخ</div>
+                        <div className="bg-[#d2691e] text-white text-center font-bold py-1 border-2 border-[#d2691e] mb-4">عقد رقم ({facilityDetails?.contractNumber || ''})</div>
+
+                        <div className="border-2 border-[#c5b358] mb-4">
+                            <div className="bg-[#c5b358] text-right font-bold p-1 border-b border-[#c5b358]">البيانات</div>
+                            <div className="flex border-b border-gray-400">
+                                <div className="w-1/4 bg-gray-50 p-1 border-l border-gray-400 font-bold">مسلخ مدينة</div>
+                                <div className="w-1/4 p-1 border-l border-gray-400">{facilityDetails?.location.split('-')[0]}</div>
+                                <div className="w-1/4 bg-gray-50 p-1 border-l border-gray-400 font-bold">شهر</div>
+                                <div className="w-1/4 p-1">{formatMonthYearArabic(month)}</div>
+                            </div>
+                            <div className="flex border-b border-gray-400">
+                                <div className="w-1/4 bg-gray-50 p-1 border-l border-gray-400 font-bold">المشغل</div>
+                                <div className="w-3/4 p-1">{facilityDetails?.operatingCompany}</div>
+                            </div>
+                            <div className="flex">
+                                <div className="w-1/4 bg-gray-50 p-1 border-l border-gray-400 font-bold">القوة العاملة</div>
+                                <div className="w-3/4 p-1 text-[10px]">{employeesString}</div>
+                            </div>
+                        </div>
+
+                        <div className="border-2 border-[#c5b358] flex-1 flex flex-col">
+                            <div className="bg-[#c5b358] text-right font-bold p-1 border-b border-black">مخالفات العقد</div>
+                            <div className="flex bg-gray-100 font-bold text-center border-b border-black">
+                                <div className="w-1/3 p-1 border-l border-black">نوع المخالفة</div>
+                                <div className="w-1/6 p-1 border-l border-black">الوحدة</div>
+                                <div className="w-1/6 p-1 border-l border-black">العدد</div>
+                                <div className="w-1/3 p-1">ملاحظات</div>
+                            </div>
+                            <div className="flex border-b border-black">
+                                <div className="w-1/3 p-2 border-l border-black font-bold">غياب مشرف العمال</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">يوم</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">{reportData?.supervisorAbsence || '-'}</div>
+                                <div className="w-1/3 p-2 text-center"></div>
+                            </div>
+                            <div className="flex border-b border-black">
+                                <div className="w-1/3 p-2 border-l border-black font-bold">غياب (محاسب - قصاب - عامل نظافة - عامل جلود - حمال)</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">عامل / يوم</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">{reportData?.workerAbsence || '-'}</div>
+                                <div className="w-1/3 p-2 text-center"></div>
+                            </div>
+                            <div className="flex border-b border-black">
+                                <div className="w-1/3 p-2 border-l border-black font-bold">مخالفة شروط الصحة والسلامة المهنية</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">يوم</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">{reportData?.safetyCount || '-'}</div>
+                                <div className="w-1/3 p-2 text-center"></div>
+                            </div>
+                            <div className="flex border-b border-black">
+                                <div className="w-1/3 p-2 border-l border-black font-bold">مخالفة النظافة والتطهير</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">يوم</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">{reportData?.hygieneCount || '-'}</div>
+                                <div className="w-1/3 p-2 text-center"></div>
+                            </div>
+                            <div className="flex border-b border-black">
+                                <div className="w-1/3 p-2 border-l border-black font-bold">تقرير الفحص المخبري</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">سلبي</div>
+                                <div className="w-1/6 p-2 border-l border-black text-center">{reportData?.labCount > 0 ? 'إيجابي' : '-'}</div>
+                                <div className="w-1/3 p-2 text-center"></div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 border-2 border-black">
+                            <div className="flex border-b border-black">
+                                <div className="w-1/2 text-center p-1 border-l border-black font-bold bg-gray-50">ممثل الشركة</div>
+                                <div className="w-1/2 text-center p-1 font-bold bg-gray-50">الطبيب البيطري</div>
+                            </div>
+                            <div className="flex h-16">
+                                <div className="w-1/2 border-l border-black p-2"></div>
+                                <div className="w-1/2 p-2 text-center flex items-end justify-center font-bold">{currentUser.name}</div>
+                            </div>
+                            <div className="text-center p-1 font-bold bg-gray-50 border-t border-b border-black">رئيس شعبة المسالخ</div>
+                            <div className="h-16"></div>
+                        </div>
+
+                        <div className="mt-auto bg-[#c5b358] flex justify-between px-4 py-1 font-bold border-t-2 border-[#8b4513]">
+                            <span>SH-KPI</span>
+                            <span>نسخة الكترونية معتمدة</span>
+                            <span>Page 1-1</span>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // KPI
+        // KPI Page
         const KPIPage = ({ currentUser }) => {
             const { showToast } = useToast();
             const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
             const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
             const [stats, setStats] = useState({});
-            const [overallKPI, setOverallKPI] = useState(100);
             const [status, setStatus] = useState(null);
             const [items, setItems] = useState([]);
             const [notes, setNotes] = useState({});
-            const facilities = storage.facilities.getAll();
-            const showFacilities = [UserRole.ADMIN, UserRole.DEPT_MANAGER].includes(currentUser.role);
+            const [facilities, setFacilities] = useState([]);
+            const [contractNumber, setContractNumber] = useState('');
+            const [paymentNumber, setPaymentNumber] = useState(''); 
+            const [slaughterhouseName, setSlaughterhouseName] = useState('');
 
-            useEffect(() => setItems(storage.items.getAll()), []);
-            useEffect(() => { if (!showFacilities && currentUser.facilityId) setSelectedFacility(currentUser.facilityId); }, []);
+            const showFacilities = [UserRole.ADMIN, UserRole.DEPT_MANAGER].includes(currentUser.role);
+            const canEdit = [UserRole.ADMIN, UserRole.USER].includes(currentUser.role) && (!status || !status.submittedForApproval);
+            const canApprove = currentUser.role === UserRole.DEPT_MANAGER && status?.submittedForApproval && !status.approvedByManager;
+
             useEffect(() => {
-                const r = storage.kpiReports.getAll().find(r => r.month === month && r.facilityId === selectedFacility);
+                setItems(DataService.items.getAll());
+                setFacilities(DataService.facilities.getAll());
+                if (!showFacilities && currentUser.facilityId) setSelectedFacility(currentUser.facilityId);
+            }, [showFacilities, currentUser]);
+
+            useEffect(() => {
+                const fac = DataService.facilities.getAll().find(f => f.id === selectedFacility);
+                if (fac) { setSlaughterhouseName(fac.name); setContractNumber(fac.contractNumber); }
+                const inv = DataService.invoices.getAll().find(i => i.month === month && i.facilityId === selectedFacility);
+                setPaymentNumber(inv?.paymentNumber || `PAY-${month}`);
+                const r = DataService.kpiReports.getAll().find(r => r.month === month && r.facilityId === selectedFacility);
                 setStatus(r || null);
                 if(r) setNotes(r.notes || {}); else setNotes({});
                 
-                const evals = storage.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
-                let totalC = 0, totalP = 0;
+                const evals = DataService.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
                 const iStats = {};
                 items.forEach(item => {
                     let iT = 0, iP = 0;
-                    evals.forEach(ev => Object.keys(ev.scores).forEach(k => { if (k.startsWith(`${item.id}_`)) { iT++; if(ev.scores[k]) iP++; } }));
+                    evals.forEach(ev => { Object.keys(ev.scores).forEach(k => { if (k.startsWith(`${item.id}_`)) { iT++; if(ev.scores[k]) iP++; } }); });
                     iStats[item.id] = { total: iT, passed: iP, percentage: iT === 0 ? 100 : Math.round((iP/iT)*100) };
-                    totalC += iT; totalP += iP;
                 });
                 setStats(iStats);
-                setOverallKPI(totalC === 0 ? 100 : Math.round((totalP/totalC)*100));
             }, [month, selectedFacility, items]);
 
-            const handleSubmit = () => { const d = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, notes, approvedByManager: false, submittedForApproval: true }; storage.kpiReports.save([...storage.kpiReports.getAll().filter(r => r.id !== d.id), d]); setStatus(d); showToast('تم التقديم'); };
-            const handleApprove = () => { if(status) { const d = {...status, approvedByManager: true}; storage.kpiReports.save([...storage.kpiReports.getAll().filter(r => r.id !== d.id), d]); setStatus(d); }};
-            const handleExport = () => exportToPDF('kpi-report', `KPI-${month}.pdf`, 'portrait', { title: 'مؤشر الأداء الشهري', facility: facilities.find(f => f.id === selectedFacility)?.name || '', date: formatMonthYearArabic(month) });
-
-            if (currentUser.role === UserRole.DEPT_MANAGER && (!status || !status.submittedForApproval)) return <div className="p-8 text-center text-gray-500">لم يتم تقديم المؤشر للاعتماد</div>;
+            const handleSubmit = () => { 
+                const d = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, notes, approvedByManager: false, submittedForApproval: true }; 
+                DataService.kpiReports.save([...DataService.kpiReports.getAll().filter(r => r.id !== d.id), d]); 
+                setStatus(d); showToast('تم التقديم'); 
+            };
+            const handleApprove = () => { if(status) { const d = {...status, approvedByManager: true}; DataService.kpiReports.save([...DataService.kpiReports.getAll().filter(r => r.id !== d.id), d]); setStatus(d); showToast('تم الاعتماد'); }};
+            const handleExport = () => {
+                const element = document.getElementById('kpi-report');
+                if (!element) return;
+                const opt = { margin: 0, filename: `KPI-${month}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                if (window.html2pdf) { window.html2pdf().from(element).set(opt).save(); } else { window.print(); }
+            };
 
             return (
                 <div className="space-y-6">
-                    <div className="bg-white p-4 rounded shadow flex justify-between no-print">
+                    <div className="bg-white p-4 rounded shadow flex flex-wrap gap-4 justify-between items-center no-print">
                         <h2 className="text-xl font-bold">مؤشر الأداء</h2>
-                        <div className="flex gap-2">{showFacilities && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}<input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
-                        {(!status || !status.submittedForApproval) && currentUser.role !== UserRole.DEPT_MANAGER && <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-2 rounded">تقديم</button>}
-                        {currentUser.role === UserRole.DEPT_MANAGER && status?.submittedForApproval && !status.approvedByManager && <button onClick={handleApprove} className="bg-gold text-white px-4 py-2 rounded">اعتماد</button>}
-                        <button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded">PDF</button></div>
+                        <div className="flex gap-2 items-center">
+                            {showFacilities && (<select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>)}
+                            <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
+                            {canEdit && <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-2 rounded font-bold">تقديم</button>}
+                            {canApprove && <button onClick={handleApprove} className="bg-gold hover:bg-gold-dark text-white px-4 py-2 rounded font-bold">اعتماد</button>}
+                            <button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2"><i className="fa fa-file-pdf"></i> PDF</button>
+                        </div>
                     </div>
-                    <div id="kpi-report" className="bg-white p-8 rounded shadow mt-6">
-                        <table className="w-full border-collapse border border-gray-300">
-                            <thead><tr className="bg-gold text-white"><th className="border p-2">البند</th><th className="border p-2">العدد</th><th className="border p-2">المطابق</th><th className="border p-2">%</th><th className="border p-2 w-1/3">ملاحظات</th></tr></thead>
-                            <tbody>{items.map(i => { const s = stats[i.id] || {total:0,passed:0,percentage:100}; return <tr key={i.id}><td className="border p-2">{i.name}</td><td className="border p-2">{s.total}</td><td className="border p-2">{s.passed}</td><td className="border p-2">{s.percentage}%</td><td className="border p-2"><input className="w-full bg-transparent border-b" value={notes[i.id]||''} onChange={e=>setNotes({...notes, [i.id]:e.target.value})} readOnly={status?.approvedByManager}/></td></tr> })}</tbody>
-                            <tfoot><tr className="bg-gray-100 font-bold"><td colSpan={3} className="border p-3">المؤشر العام</td><td className="border p-3">{overallKPI}%</td><td></td></tr></tfoot>
-                        </table>
-                        <div className="flex justify-between mt-8 border-t pt-4"><div className="text-center"><p className="font-bold">الطبيب البيطري</p>{status?.submittedForApproval && <p className="text-blue-600">تم التقديم</p>}</div><div className="text-center"><p className="font-bold">مدير الإدارة</p>{status?.approvedByManager && <p className="text-green-600">معتمد</p>}</div></div>
+
+                    <div id="kpi-report" className="bg-white mx-auto w-full max-w-[210mm] min-h-[297mm] p-4 text-xs font-sans text-black relative flex flex-col">
+                        <div className="flex justify-between items-stretch mb-2 border-2 border-[#8b4513] h-24">
+                             <div className="w-1/4 border-l-2 border-[#8b4513] flex items-center justify-center p-2"></div>
+                            <div className="w-1/2 flex flex-col items-center justify-center bg-[#c5b358] text-black font-bold">
+                                <h1 className="text-xl mb-1">إدارة الصحة العامة</h1>
+                                <h2 className="text-lg">مسلخ {slaughterhouseName}</h2>
+                            </div>
+                            <div className="w-1/4 border-r-2 border-[#8b4513] flex items-center justify-center p-2">
+                                 {DataService.settings.get().logo ? (
+                                    <img src={DataService.settings.get().logo} alt="Logo" className="max-h-20 max-w-full object-contain mix-blend-multiply" />
+                                ) : <span className="text-xl font-bold">Logo</span>}
+                            </div>
+                        </div>
+
+                        <div className="bg-[#8b4513] text-white text-center font-bold py-1 border-2 border-[#8b4513] mb-2">المؤشرات الرئيسية للأداء</div>
+                        <div className="border-2 border-black text-center font-bold py-1 mb-2">تقدم شهرياً إلى إدارة المحاسبة مع نسخة إلى إدارة المشتريات والمناقصات والعقود</div>
+
+                        <div className="flex border-2 border-[#c5b358] mb-4 font-bold text-center">
+                            <div className="w-1/2 flex"><div className="bg-[#c5b358] w-1/3 py-1 border-l border-white">رقم العقد</div><div className="w-2/3 py-1 bg-[#fdf5e6]">{contractNumber}</div></div>
+                            <div className="w-1/2 flex"><div className="bg-[#c5b358] w-1/3 py-1 border-r border-white">رقم الفاتورة الضريبية</div><div className="w-2/3 py-1 bg-[#fdf5e6]">{paymentNumber}</div></div>
+                        </div>
+
+                        <div className="border-2 border-black flex-1 flex flex-col">
+                            <div className="bg-[#c5b358] text-black font-bold border-b-2 border-black">
+                                <div className="text-right px-2 py-1 bg-[#e6d89b] border-b border-black">البيانات</div>
+                                 <div className="flex border-b border-black">
+                                    <div className="w-1/2 border-l border-black p-1 text-center bg-white">مسلخ مدينة {DataService.facilities.getAll().find(f=>f.id===selectedFacility)?.location.split('-')[0] || ''}</div>
+                                    <div className="w-1/2 p-1 text-center bg-white">مؤشرات الأداء للمقاول شهر {formatMonthYearArabic(month)}</div>
+                                </div>
+                                <div className="text-right px-2 py-1 bg-[#f0f0f0] border-b border-black text-[10px]">معايير تقييم الأداء: (ممتاز: 95-100) (جيد جداً: 90-94) (جيد: 80-89) (مقبول: 70-79) (ضعيف: أقل من 70)</div>
+                            </div>
+
+                            <div className="flex flex-1">
+                                <div className="flex flex-col w-[45%] border-l border-gray-300">
+                                    <div className="h-10 bg-[#c5b358] text-white flex items-center justify-center font-bold border-b border-white">البند</div>
+                                    {items.map((item, index) => (<div key={item.id} className={`flex-1 flex items-center justify-start pr-2 font-bold text-right border-b border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>{item.name}</div>))}
+                                </div>
+                                <div className="flex flex-col w-[10%] border-l border-gray-300">
+                                    <div className="h-10 bg-[#c5b358] text-white flex items-center justify-center font-bold border-b border-white">حساب التقييم</div>
+                                    <div className="flex-1 flex items-center justify-center bg-[#fdf5e6]"><span className="text-xs text-gray-600 font-bold whitespace-nowrap transform rotate-90" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>الالتزام الفعلي / المطلوب %</span></div>
+                                </div>
+                                <div className="flex flex-col w-[8%] border-l border-gray-300">
+                                    <div className="h-10 bg-[#c5b358] text-white flex items-center justify-center font-bold border-b border-white">العدد</div>
+                                    {items.map((item, index) => { const s = stats[item.id] || {total: 0}; return (<div key={item.id} className={`flex-1 flex items-center justify-center border-b border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>{s.total}</div>); })}
+                                </div>
+                                <div className="flex flex-col w-[8%] border-l border-gray-300">
+                                    <div className="h-10 bg-[#c5b358] text-white flex items-center justify-center font-bold border-b border-white">المطابق</div>
+                                    {items.map((item, index) => { const s = stats[item.id] || {passed: 0}; return (<div key={item.id} className={`flex-1 flex items-center justify-center border-b border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>{s.passed}</div>); })}
+                                </div>
+                                <div className="flex flex-col w-[8%] border-l border-gray-300">
+                                    <div className="h-10 bg-[#c5b358] text-white flex items-center justify-center font-bold border-b border-white">%</div>
+                                    {items.map((item, index) => { const s = stats[item.id] || {percentage: 100}; return (<div key={item.id} className={`flex-1 flex items-center justify-center font-bold border-b border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`} dir="ltr">{s.percentage}%</div>); })}
+                                </div>
+                                <div className="flex flex-col w-[21%]">
+                                    <div className="h-10 bg-[#c5b358] text-white flex items-center justify-center font-bold border-b border-white">ملاحظات</div>
+                                    {items.map((item, index) => (<div key={item.id} className={`flex-1 flex items-center justify-center p-1 border-b border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}><input className="w-full text-center bg-transparent outline-none text-[10px]" value={notes[item.id] || ''} onChange={e => setNotes({...notes, [item.id]: e.target.value})} readOnly={!!status?.approvedByManager}/></div>))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 flex justify-between items-end px-8 pb-4">
+                             <div className="text-center"><div className="font-bold mb-8 border-b-2 border-black pb-1 min-w-[150px]">الطبيب المناوب</div><div>{status?.submittedForApproval ? currentUser.name : '...................'}</div></div>
+                            <div className="text-center"><div className="font-bold mb-8 border-b-2 border-black pb-1 min-w-[150px]">ممثل المقاول</div><div>...................</div></div>
+                            <div className="text-center"><div className="font-bold mb-8 border-b-2 border-black pb-1 min-w-[150px]">مدير الإدارة</div><div>{status?.approvedByManager ? 'معتمد' : '...................'}</div></div>
+                        </div>
+
+                        <div className="mt-auto bg-[#c5b358] flex justify-between px-4 py-1 font-bold border-t-2 border-[#8b4513]"><span>SH-KPI</span><span>نسخة الكترونية معتمدة</span><span>Page 1-1</span></div>
                     </div>
                 </div>
             );
         };
 
-        // Invoice - المحسنة مع إدارة المواقع والمشغلين
-        const InvoicePage = ({ currentUser }) => {
+        // Invoice - LANDSCAPE
+        const MonthlyInvoicePage = ({ currentUser }) => {
             const { showToast } = useToast();
             const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
             const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
             const [invoiceData, setInvoiceData] = useState(null);
-            const [facilities, setFacilities] = useState([]);
-            const [violationsTotal, setViolationsTotal] = useState(0);
-            const [kpiPercentage, setKpiPercentage] = useState(100);
-            const [extraLabor, setExtraLabor] = useState(null);
-            const [absentDays, setAbsentDays] = useState({});
+            const [facilities, setFacilities] = useState(DataService.facilities.getAll());
+            const [calculatedData, setCalculatedData] = useState(null);
             const [contractNumber, setContractNumber] = useState('');
             const [paymentNumber, setPaymentNumber] = useState('');
             const [operatingCompany, setOperatingCompany] = useState('');
@@ -1023,439 +1299,170 @@
             const canSelect = [UserRole.ADMIN, UserRole.DEPT_MANAGER, UserRole.SECTION_HEAD].includes(currentUser.role);
             
             useEffect(() => {
-                setFacilities(storage.facilities.getAll());
+                setFacilities(DataService.facilities.getAll());
                 if (!canSelect && currentUser.facilityId) setSelectedFacility(currentUser.facilityId);
-            }, []);
+            }, [currentUser, canSelect]);
 
             useEffect(() => {
-                // تحميل بيانات الموقع المحدد
                 const selectedFacilityData = facilities.find(f => f.id === selectedFacility);
                 if (selectedFacilityData) {
                     setContractNumber(selectedFacilityData.contractNumber || '');
                     setOperatingCompany(selectedFacilityData.operatingCompany || '');
                     setSlaughterhouseName(selectedFacilityData.name || '');
                 }
-                
-                // تحميل بيانات الفاتورة المخزنة
-                const invoice = storage.invoices.getAll().find(i => i.month === month && i.facilityId === selectedFacility);
+                const invoice = DataService.invoices.getAll().find(i => i.month === month && i.facilityId === selectedFacility);
                 setInvoiceData(invoice || null);
-                
-                if (invoice) {
+                if (invoice && invoice.data) {
+                    setCalculatedData(invoice.data);
                     setPaymentNumber(invoice.paymentNumber || '');
-                    setContractNumber(invoice.contractNumber || selectedFacilityData?.contractNumber || '');
-                    setOperatingCompany(invoice.operatingCompany || selectedFacilityData?.operatingCompany || '');
+                    setContractNumber(invoice.contractNumber || '');
+                    setOperatingCompany(invoice.operatingCompany || '');
+                    return;
                 }
-                
-                // حساب المخالفات
-                const v = storage.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility).reduce((s, v) => s + v.total, 0);
-                setViolationsTotal(v);
-                
-                // حساب مؤشر الأداء
-                const evals = storage.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
-                let t = 0, p = 0; 
-                evals.forEach(e => Object.values(e.scores).forEach(x => { t++; if(x) p++; }));
-                setKpiPercentage(t === 0 ? 100 : Math.round((p/t)*100));
 
-                // تحميل العمالة الإضافية
-                const allExtra = storage.extraLabor.getAll();
+                // Live Calc
+                const [yearStr, monthStr] = month.split('-');
+                const daysInMonth = new Date(parseInt(yearStr), parseInt(monthStr), 0).getDate();
+                const v = DataService.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility).reduce((s, v) => s + v.total, 0);
+                const violationsTotal = v;
+                const evals = DataService.evaluations.getAll().filter(e => e.date.startsWith(month) && e.facilityId === selectedFacility);
+                let t = 0, p = 0; evals.forEach(e => Object.values(e.scores).forEach(x => { t++; if(x) p++; }));
+                const kpiPercentage = t === 0 ? 100 : Math.round((p/t)*100);
+                const allExtra = DataService.extraLabor.getAll();
                 const extra = allExtra.find(e => e.date === month && e.facilityId === selectedFacility && e.submitted);
-                setExtraLabor(extra || null);
+                const extraLaborCost = extra ? extra.items.reduce((sum, item) => sum + (item.dailyRate * item.days), 0) : 0;
+                const extraLaborItems = extra ? extra.items.filter(i => i.days > 0 || i.dailyRate > 0) : [];
 
-                // تحميل أيام الغياب
-                const absences = {};
-                // افتراضي: 0 يوم غياب لكل وظيفة
-                INVOICE_EMPLOYEE_STRUCTURE.forEach(item => {
-                    absences[item.role] = 0;
+                const facilityEmployees = DataService.employees.getAll().filter(e => e.facilityId === selectedFacility);
+                const roleStats = {};
+                INVOICE_EMPLOYEE_STRUCTURE.forEach(s => { roleStats[s.role] = { present: 0, absent: 0 }; });
+                evals.forEach(ev => {
+                    facilityEmployees.forEach(emp => {
+                        const role = emp.jobTitle.trim();
+                        const structMatch = INVOICE_EMPLOYEE_STRUCTURE.find(s => s.role === role);
+                        if (structMatch) {
+                            const isPresent = ev.scores[`i1_${emp.id}`];
+                            if (isPresent === true) roleStats[structMatch.role].present++;
+                            else if (isPresent === false) roleStats[structMatch.role].absent++;
+                        }
+                    });
                 });
-                setAbsentDays(absences);
 
+                const employeeCosts = INVOICE_EMPLOYEE_STRUCTURE.map(item => {
+                    const dailySalary = item.monthlySalary / daysInMonth; 
+                    const totalExpectedDays = item.count * daysInMonth; 
+                    const actualDays = roleStats[item.role]?.present || 0;
+                    const absentDays = roleStats[item.role]?.absent || 0;
+                    const netSalary = actualDays * dailySalary;
+                    const isSupervisor = item.role === 'مشرف المسلخ' || item.role === 'مشرف النظافة';
+                    const penaltyRate = isSupervisor ? 250 : 150;
+                    const absentPenalty = absentDays * penaltyRate;
+                    return { ...item, dailySalary, expectedDays: daysInMonth, totalExpectedDays, actualDays, absentDays, netSalary, absentPenalty };
+                });
+
+                const totalSalaries = employeeCosts.reduce((sum, item) => sum + item.netSalary, 0);
+                const totalAbsentPenalties = employeeCosts.reduce((sum, item) => sum + item.absentPenalty, 0);
+                const baseTotal = totalSalaries + CLEANING_MATERIAL_COST + extraLaborCost;
+                let kpiDeduction = 0;
+                if (kpiPercentage < 80) kpiDeduction = baseTotal * 0.10;
+                else if (kpiPercentage < 90) kpiDeduction = baseTotal * 0.05;
+                const retention = baseTotal * 0.05; 
+                const tax = baseTotal * 0.05; 
+                const finalTotal = (baseTotal + tax) - (violationsTotal + totalAbsentPenalties + kpiDeduction + retention);
+
+                setCalculatedData({ employeeCosts, baseTotal, tax, kpiDeduction, violationsTotal, totalAbsentPenalties, retention, finalTotal, extraLaborCost, kpiPercentage, extraLaborItems, daysInMonth });
             }, [month, selectedFacility, facilities]);
 
-            // حساب البيانات بناءً على الهيكل
-            const calculateEmployeeCosts = () => {
-                return INVOICE_EMPLOYEE_STRUCTURE.map(item => {
-                    const actualDays = item.expectedDays - (absentDays[item.role] || 0);
-                    const monthlyCost = item.count * item.monthlySalary;
-                    const dailyCost = item.count * item.dailySalary;
-                    const totalDaysCost = dailyCost * actualDays;
-                    const absentPenalty = (item.role === 'مشرف المسلخ' || item.role === 'مشرف النظافة') 
-                        ? (absentDays[item.role] || 0) * 250
-                        : (absentDays[item.role] || 0) * 150;
-                    
-                    return {
-                        ...item,
-                        actualDays,
-                        totalDaysCost,
-                        absentPenalty,
-                        netSalary: totalDaysCost - absentPenalty
-                    };
-                });
-            };
-
-            const employeeCosts = calculateEmployeeCosts();
-            const totalSalaries = employeeCosts.reduce((sum, item) => sum + item.netSalary, 0);
-            const totalAbsentPenalties = employeeCosts.reduce((sum, item) => sum + item.absentPenalty, 0);
-            
-            // حساب العمالة الإضافية
-            const extraLaborCost = extraLabor ? extraLabor.items.reduce((sum, item) => sum + (item.dailyRate * item.days), 0) : 0;
-            
-            // المجاميع
-            const baseTotal = totalSalaries + CLEANING_MATERIAL_COST + extraLaborCost;
-            const tax = baseTotal * 0.05;
-            const taxableAmount = baseTotal;
-            
-            // خصومات الأداء
-            let kpiDeduction = 0;
-            if (kpiPercentage < 80) kpiDeduction = baseTotal * 0.10;
-            else if (kpiPercentage < 90) kpiDeduction = baseTotal * 0.05;
-            
-            // الحجز (كفالة)
-            const retention = taxableAmount * 0.05;
-            
-            // الإجمالي النهائي
-            const totalDeductions = tax + kpiDeduction + violationsTotal + totalAbsentPenalties;
-            const finalTotal = baseTotal - totalDeductions;
-
             const handleUserSubmit = () => { 
-                const d = { 
-                    id: `${month}-${selectedFacility}`, 
-                    month, 
-                    facilityId: selectedFacility, 
-                    status: 'SUBMITTED', 
-                    approvals: {}, 
-                    signatures: { enteredBy: currentUser.name },
-                    contractNumber,
-                    paymentNumber: paymentNumber || `PAY-${month}-${selectedFacility}`,
-                    operatingCompany,
-                    slaughterhouseName,
-                    data: {
-                        employeeCosts,
-                        baseTotal,
-                        tax,
-                        kpiDeduction,
-                        violationsTotal,
-                        totalAbsentPenalties,
-                        retention,
-                        finalTotal
-                    }
-                }; 
-                storage.invoices.save([...storage.invoices.getAll().filter(i => i.id !== d.id), d]); 
-                setInvoiceData(d); 
-                showToast('تم التقديم'); 
+                if (!calculatedData) return;
+                const d = { id: `${month}-${selectedFacility}`, month, facilityId: selectedFacility, status: 'SUBMITTED', approvals: {}, signatures: { enteredBy: currentUser.name, enteredDate: new Date().toLocaleDateString('en-GB') }, contractNumber, paymentNumber: paymentNumber || `PAY-${month}-${selectedFacility}`, operatingCompany, slaughterhouseName, data: calculatedData }; 
+                DataService.invoices.save([...DataService.invoices.getAll().filter(i => i.id !== d.id), d]); setInvoiceData(d); showToast('تم تقديم الفاتورة بنجاح'); 
             };
-            
-            const handleContractorApprove = () => { 
-                if(invoiceData) { 
-                    const d = {
-                        ...invoiceData, 
-                        approvals: {...invoiceData.approvals, contractor: true}, 
-                        signatures: {...invoiceData.signatures, contractor: currentUser.name}
-                    }; 
-                    storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); 
-                    setInvoiceData(d); 
-                } 
+            const handleContractorApprove = () => { if(invoiceData) { const d = {...invoiceData, approvals: {...invoiceData.approvals, contractor: true}, signatures: {...invoiceData.signatures, contractor: currentUser.name, contractorDate: new Date().toLocaleDateString('en-GB')}}; DataService.invoices.save([...DataService.invoices.getAll().filter(i=>i.id!==d.id), d]); setInvoiceData(d); showToast('تم اعتماد المقاول'); } };
+            const handleManagerApprove = () => { if(invoiceData) { const d = {...invoiceData, status: 'APPROVED', approvals: {...invoiceData.approvals, deptManager: true}, signatures: {...invoiceData.signatures, deptManager: currentUser.name, deptManagerDate: new Date().toLocaleDateString('en-GB')}}; DataService.invoices.save([...DataService.invoices.getAll().filter(i=>i.id!==d.id), d]); setInvoiceData(d); showToast('تم الاعتماد النهائي'); } };
+            const handleExport = () => {
+                const element = document.getElementById('invoice-report');
+                if(element && window.html2pdf) { const opt = { margin: 0, filename: `Invoice-${month}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }; window.html2pdf().from(element).set(opt).save(); } else window.print();
             };
-            
-            const handleManagerApprove = () => { 
-                if(invoiceData) { 
-                    const d = {
-                        ...invoiceData, 
-                        status: 'APPROVED', 
-                        approvals: {...invoiceData.approvals, deptManager: true}, 
-                        signatures: {...invoiceData.signatures, deptManager: currentUser.name}
-                    }; 
-                    storage.invoices.save([...storage.invoices.getAll().filter(i=>i.id!==d.id), d]); 
-                    setInvoiceData(d); 
-                } 
-            };
-            
-            const handleExport = () => exportToPDF('invoice-report', `Invoice-${month}.pdf`, 'landscape', { 
-                title: 'الفاتورة الشهرية', 
-                facility: facilities.find(f => f.id === selectedFacility)?.name || '', 
-                date: formatMonthYearArabic(month) 
-            });
 
             const isUser = currentUser.role === UserRole.USER || currentUser.role === UserRole.ADMIN;
-
-            if (currentUser.role === UserRole.DEPT_MANAGER && (!invoiceData || invoiceData.status === 'PENDING')) {
-                return <div className="p-8 text-center text-gray-500">لم يتم تقديم الفاتورة للاعتماد</div>;
-            }
+            if (!calculatedData) return <div>جاري التحميل...</div>;
+            const { employeeCosts, baseTotal, tax, kpiDeduction, violationsTotal, totalAbsentPenalties, retention, finalTotal, extraLaborCost, kpiPercentage, extraLaborItems, daysInMonth } = calculatedData;
+            const totalImposedPenalties = totalAbsentPenalties + violationsTotal;
 
             return (
                 <div className="space-y-6">
-                    <div className="bg-white p-4 rounded shadow flex flex-wrap gap-4 no-print">
-                        <h2 className="text-xl font-bold flex-1">الفاتورة الشهرية</h2>
-                        {canSelect && (
-                            <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">
-                                {facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                            </select>
-                        )}
-                        <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
-                        
-                        {/* حقول إضافية للمستخدمين */}
-                        {isUser && (
-                            <div className="flex flex-wrap gap-2">
-                                <input 
-                                    type="text" 
-                                    value={contractNumber} 
-                                    onChange={e => setContractNumber(e.target.value)}
-                                    placeholder="رقم العقد" 
-                                    className="border p-2 rounded w-40"
-                                />
-                                <input 
-                                    type="text" 
-                                    value={paymentNumber} 
-                                    onChange={e => setPaymentNumber(e.target.value)}
-                                    placeholder="رقم الدفعة" 
-                                    className="border p-2 rounded w-40"
-                                />
-                                <input 
-                                    type="text" 
-                                    value={operatingCompany} 
-                                    onChange={e => setOperatingCompany(e.target.value)}
-                                    placeholder="الشركة المشغلة" 
-                                    className="border p-2 rounded w-40"
-                                />
-                            </div>
-                        )}
-                        
-                        {isUser && (!invoiceData || invoiceData.status === 'PENDING') && (
-                            <button onClick={handleUserSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">
-                                تقديم للاعتماد
-                            </button>
-                        )}
-                        {invoiceData && invoiceData.status === 'SUBMITTED' && isUser && (
-                            <span className="text-green-600 font-bold px-4 py-2">تم التقديم</span>
-                        )}
-                        {invoiceData && !invoiceData.approvals.contractor && currentUser.role === UserRole.CONTRACTOR && (
-                            <button onClick={handleContractorApprove} className="bg-purple-600 text-white px-4 py-2 rounded">
-                                اعتماد مقاول
-                            </button>
-                        )}
-                        {invoiceData && !invoiceData.approvals.deptManager && currentUser.role === UserRole.DEPT_MANAGER && (
-                            <button onClick={handleManagerApprove} className="bg-gold text-white px-4 py-2 rounded">
-                                اعتماد نهائي
-                            </button>
-                        )}
-                        <button onClick={handleExport} className="bg-gray-600 text-white px-4 py-2 rounded">تصدير PDF</button>
+                    <div className="bg-white p-4 rounded shadow flex flex-col gap-4 no-print border-b border-gray-200">
+                        <div className="flex flex-wrap gap-4 items-center">
+                            <h2 className="text-xl font-bold flex-1 text-gray-800">إدارة الفواتير</h2>
+                            {canSelect && (<select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded bg-gray-50">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>)}
+                            <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded bg-gray-50" />
+                            {isUser && (<div className="flex flex-wrap gap-2"><input type="text" value={contractNumber} onChange={e => setContractNumber(e.target.value)} placeholder="رقم العقد" className="border p-2 rounded w-32 text-sm" /><input type="text" value={paymentNumber} onChange={e => setPaymentNumber(e.target.value)} placeholder="رقم الدفعة" className="border p-2 rounded w-32 text-sm" /></div>)}
+                            {isUser && (!invoiceData || invoiceData.status === 'PENDING') && (<button onClick={handleUserSubmit} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-sm text-sm font-bold">تقديم للاعتماد</button>)}
+                            {invoiceData && !invoiceData.approvals.contractor && currentUser.role === UserRole.CONTRACTOR && (<button onClick={handleContractorApprove} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow-sm text-sm font-bold">اعتماد مقاول</button>)}
+                            {invoiceData && !invoiceData.approvals.deptManager && currentUser.role === UserRole.DEPT_MANAGER && (<button onClick={handleManagerApprove} className="bg-gold hover:bg-gold-dark text-white px-4 py-2 rounded shadow-sm text-sm font-bold">اعتماد نهائي</button>)}
+                            <button onClick={handleExport} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded shadow-sm text-sm font-bold flex items-center gap-2"><i className="fa fa-file-pdf"></i> تصدير PDF</button>
+                        </div>
                     </div>
                     
-                    <div id="invoice-report" className="bg-white p-4 rounded shadow mt-6">
-                        {/* رأس الفاتورة */}
-                        <div className="invoice-header text-center mb-6">
-                            <h1 className="text-2xl font-bold mb-2">إدارة الصحة العامة</h1>
-                            <h2 className="text-xl font-bold mb-4">الفاتورة الشهرية</h2>
-                            <div className="flex justify-between text-sm">
-                                <div className="text-right">
-                                    <p><strong>عقد رقم:</strong> {contractNumber || '________'}</p>
-                                    <p><strong>عن شهر:</strong> {formatMonthYearArabic(month)}</p>
-                                    <p><strong>الدفعة رقم:</strong> {paymentNumber || '________'}</p>
-                                </div>
-                                <div className="text-left">
-                                    <p><strong>اسم المسلخ:</strong> {slaughterhouseName || facilities.find(f => f.id === selectedFacility)?.name || ''}</p>
-                                    <p><strong>الشركة المشغلة:</strong> {operatingCompany || facilities.find(f => f.id === selectedFacility)?.operatingCompany || '________'}</p>
-                                </div>
+                    <div id="invoice-report" className="bg-white p-2 mx-auto w-full max-w-[297mm] h-[210mm] flex flex-col justify-between text-[10px] leading-tight font-sans overflow-hidden">
+                        <div>
+                            <div className="flex justify-between items-center bg-[#c5b358] p-1 border-2 border-black mb-1 h-[18mm]">
+                                <div className="text-center w-1/4 h-full flex items-center justify-center">{DataService.settings.get().logo ? (<img src={DataService.settings.get().logo} alt="Logo" className="h-full max-h-16 mx-auto object-contain mix-blend-multiply" />) : <div className="text-2xl font-bold">LOGO</div>}</div>
+                                <div className="text-center w-2/4"><h1 className="text-xl font-bold mb-0">إدارة الصحة العامة</h1><h2 className="text-lg font-bold">مسلخ {slaughterhouseName || '................'}</h2></div>
+                                 <div className="text-center w-1/4"></div>
                             </div>
-                        </div>
-
-                        {/* جدول الموظفين الأساسيين */}
-                        <table className="invoice-table mb-4">
-                            <thead>
-                                <tr>
-                                    <th rowSpan="2">م</th>
-                                    <th rowSpan="2">الفئة</th>
-                                    <th rowSpan="2">عدد العمالة</th>
-                                    <th rowSpan="2">الراتب الشهري</th>
-                                    <th rowSpan="2">التكلفة الشهرية</th>
-                                    <th rowSpan="2">الراتب اليومي</th>
-                                    <th rowSpan="2">عدد أيام الشهر</th>
-                                    <th colSpan="3">الحضور</th>
-                                    <th rowSpan="2">الراتب المستحق</th>
-                                </tr>
-                                <tr>
-                                    <th>المتوقع</th>
-                                    <th>الفعلي</th>
-                                    <th>الغياب</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {employeeCosts.map((item, index) => (
-                                    <tr key={index}>
-                                        <td>{index + 1}</td>
-                                        <td>{item.role}</td>
-                                        <td>{item.count}</td>
-                                        <td>{item.monthlySalary.toLocaleString()}</td>
-                                        <td>{(item.count * item.monthlySalary).toLocaleString()}</td>
-                                        <td>{item.dailySalary.toLocaleString()}</td>
-                                        <td>{item.expectedDays}</td>
-                                        <td>{item.expectedDays}</td>
-                                        <td>{item.actualDays}</td>
-                                        <td>{absentDays[item.role] || 0}</td>
-                                        <td>{item.netSalary.toLocaleString()}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        {/* العمالة الإضافية */}
-                        {extraLaborCost > 0 && (
-                            <div className="mb-4">
-                                <h3 className="font-bold mb-2">العمالة الإضافية:</h3>
-                                <table className="invoice-table">
-                                    <thead>
-                                        <tr>
-                                            <th>م</th>
-                                            <th>الفئة</th>
-                                            <th>عدد أيام الشهر</th>
-                                            <th>الراتب اليومي</th>
-                                            <th>الإجمالي</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>1</td>
-                                            <td>جزار إضافي</td>
-                                            <td>{extraLabor?.items[0]?.days || 0}</td>
-                                            <td>{extraLabor?.items[0]?.dailyRate || 0}</td>
-                                            <td>{((extraLabor?.items[0]?.days || 0) * (extraLabor?.items[0]?.dailyRate || 0)).toLocaleString()}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>2</td>
-                                            <td>عامل نظافة إضافي</td>
-                                            <td>{extraLabor?.items[1]?.days || 0}</td>
-                                            <td>{extraLabor?.items[1]?.dailyRate || 0}</td>
-                                            <td>{((extraLabor?.items[1]?.days || 0) * (extraLabor?.items[1]?.dailyRate || 0)).toLocaleString()}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>3</td>
-                                            <td>حمال إضافي</td>
-                                            <td>{extraLabor?.items[2]?.days || 0}</td>
-                                            <td>{extraLabor?.items[2]?.dailyRate || 0}</td>
-                                            <td>{((extraLabor?.items[2]?.days || 0) * (extraLabor?.items[2]?.dailyRate || 0)).toLocaleString()}</td>
-                                        </tr>
-                                        <tr className="total-row">
-                                            <td colSpan="4">مجموع العمالة الإضافية</td>
-                                            <td>{extraLaborCost.toLocaleString()}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div className="grid grid-cols-3 border-2 border-black mb-1 text-center font-bold text-[10px]">
+                                <div className="border-l-2 border-black bg-[#e6d89b] p-0.5">المشروع : تشغيل وصيانة المسالخ</div>
+                                <div className="border-l-2 border-black bg-[#e6d89b] p-0.5">الشركة المشغلة : {operatingCompany}</div>
+                                <div className="bg-[#e6d89b] p-0.5">عقد رقم : {contractNumber}</div>
+                                <div className="border-t-2 border-l-2 border-black bg-[#e6d89b] p-0.5">الدفعة رقم : {paymentNumber}</div>
+                                <div className="border-t-2 border-l-2 border-black bg-[#e6d89b] p-0.5">عن شهر : {formatMonthYearArabic(month)}</div>
+                                <div className="border-t-2 border-black bg-[#e6d89b] p-0.5">التاريخ : {invoiceData?.signatures.enteredDate || new Date().toLocaleDateString('en-GB')}</div>
                             </div>
-                        )}
-
-                        {/* معدات ومواد التنظيف */}
-                        <div className="mb-4">
-                            <h3 className="font-bold mb-2">معدات ومواد التنظيف والتطهير:</h3>
-                            <table className="invoice-table">
+                            <table className="w-full border-collapse border-2 border-black text-center text-[10px] mb-1">
+                                <thead className="bg-[#c5b358] text-black font-bold"><tr><th className="border border-black p-0.5 w-6">م</th><th className="border border-black p-0.5 w-32">الفئة</th><th className="border border-black p-0.5">عدد العمالة</th><th className="border border-black p-0.5">الراتب الشهري</th><th className="border border-black p-0.5">التكلفة الشهرية</th><th className="border border-black p-0.5">الراتب اليومي</th><th className="border border-black p-0.5">عدد أيام الشهر</th><th className="border border-black p-0.5">إجمالي عدد أيام<br/>الحضور المتوقعة</th><th className="border border-black p-0.5">أيام الغياب</th><th className="border border-black p-0.5">عدد أيام الحضور<br/>الفعلي للموظف</th><th className="border border-black p-0.5 w-24">الراتب المستحق</th></tr></thead>
                                 <tbody>
+                                    {employeeCosts.map((item, index) => (<tr key={index}><td className="border border-black p-0.5">{index + 1}</td><td className="border border-black p-0.5 font-bold bg-white text-right px-1">{item.role}</td><td className="border border-black p-0.5">{item.count}</td><td className="border border-black p-0.5">{Math.round(item.monthlySalary).toLocaleString()}</td><td className="border border-black p-0.5">{(Math.round(item.count * item.monthlySalary)).toLocaleString()}</td><td className="border border-black p-0.5">{item.dailySalary.toFixed(2)}</td><td className="border border-black p-0.5">{daysInMonth}</td><td className="border border-black p-0.5">{item.totalExpectedDays}</td><td className="border border-black p-0.5 bg-white font-bold text-red-600">{item.absentDays}</td><td className="border border-black p-0.5">{item.actualDays}</td><td className="border border-black p-0.5 font-bold bg-[#fef3c7]">{Math.round(item.netSalary).toLocaleString()}</td></tr>))}
+                                    <tr className="bg-gray-50"><td className="border border-black p-0.5">{employeeCosts.length + 1}</td><td className="border border-black p-0.5 font-bold text-right px-1">معدات ومواد التنظيف والتطهير</td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 font-bold bg-[#fef3c7]">{CLEANING_MATERIAL_COST.toLocaleString()}</td></tr>
+                                    <tr className="bg-[#e6d89b] font-bold"><td className="border border-black p-0.5" colSpan={10}>مجموع الرواتب الشهرية ومعدات ومواد التنظيف</td><td className="border border-black p-0.5">{(Math.round(calculatedData.employeeCosts.reduce((s, i) => s + i.netSalary, 0)) + CLEANING_MATERIAL_COST).toLocaleString()}</td></tr>
+                                    {extraLaborItems && extraLaborItems.map((item, i) => (<tr key={`extra-${i}`}><td className="border border-black p-0.5">{employeeCosts.length + 2 + i}</td><td className="border border-black p-0.5 font-bold text-right px-1">{item.jobTitle} (إضافي)</td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5">{item.dailyRate}</td><td className="border border-black p-0.5">{item.days}</td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 bg-gray-200"></td><td className="border border-black p-0.5 font-bold bg-[#fef3c7]">{(item.dailyRate * item.days).toLocaleString()}</td></tr>))}
+                                     <tr className="bg-[#e6d89b] font-bold"><td className="border border-black p-0.5" colSpan={10}>مجموع خدمات العمالة الاضافية</td><td className="border border-black p-0.5">{extraLaborCost.toLocaleString()}</td></tr>
+                                    <tr className="bg-[#c5b358] font-bold text-[11px]"><td className="border border-black p-0.5" colSpan={10}>اجمالي قيمة الخدمات خلال الشهر</td><td className="border border-black p-0.5">{Math.round(baseTotal).toLocaleString()}</td></tr>
+                                </tbody>
+                            </table>
+                            <table className="w-full border-collapse border-2 border-black text-center text-[10px] mb-2">
+                                <tbody>
+                                    <tr><td className="border border-black p-0.5 bg-[#fce7f3] font-bold w-[70%] text-right px-2">حجز (5%) من قيمة الفاتورة تأمين "كفالة حسن تنفيذ الأعمال" = ( المبلغ الخاضع للضريبة * 5% )</td><td className="border border-black p-0.5 bg-white font-bold w-[15%] text-red-600">({Math.round(retention).toLocaleString()})</td><td className="border border-black p-0.5 bg-white w-[15%]"></td></tr>
+                                    <tr><td className="border border-black p-0.5 bg-gray-50 font-bold text-right px-2">المبلغ الإجمالي الخاضع للضريبة = (إجمالي قيمة الخدمات خلال الشهر)</td><td className="border border-black p-0.5 bg-white"></td><td className="border border-black p-0.5 bg-white font-bold">{Math.round(baseTotal).toLocaleString()}</td></tr>
+                                     <tr><td className="border border-black p-0.5 bg-gray-50 font-bold text-right px-2">مبلغ الضريبة 5% = (المبلغ الخاضع للضريبة 5%)</td><td className="border border-black p-0.5 bg-white"></td><td className="border border-black p-0.5 bg-white font-bold">{Math.round(tax).toLocaleString()}</td></tr>
                                     <tr>
-                                        <td>تكلفة مواد التنظيف الشهرية</td>
-                                        <td colSpan="3"></td>
-                                        <td>{CLEANING_MATERIAL_COST.toLocaleString()}</td>
+                                        <td className="border border-black p-0" colSpan={3}>
+                                            <div className="flex">
+                                                <div className="w-[30%] border-l border-black flex items-center justify-center font-bold bg-white p-1">مؤشر الأداء الشهري = <span className="text-sm mx-2">{kpiPercentage}%</span></div>
+                                                <div className="w-[70%]">
+                                                    <div className="border-b border-black p-0.5 text-right px-2 flex justify-between bg-white"><span>مؤشر الأداء الشهري بين 90% الى 100% ( لايتم فرض أي غرامات)</span>{kpiPercentage >= 90 && <i className="fa fa-check text-green-600"></i>}</div>
+                                                    <div className="border-b border-black p-0.5 text-right px-2 flex justify-between bg-white"><span>مؤشر الأداء الشهري بين 80% الى 89% ( يتم فرض غرامة 5% من قيمة الفاتورة الشهرية)</span>{kpiPercentage >= 80 && kpiPercentage < 90 && <i className="fa fa-check text-red-600"></i>}</div>
+                                                    <div className="p-0.5 text-right px-2 flex justify-between bg-white"><span>مؤشر الأداء الشهري أقل من 80% (يتم فرض غرامة 10% من قيمة الفاتورة الشهرية)</span>{kpiPercentage < 80 && <i className="fa fa-check text-red-600"></i>}</div>
+                                                </div>
+                                            </div>
+                                        </td>
                                     </tr>
+                                     <tr><td className="border border-black p-0.5 bg-white font-bold text-right px-2">إجمالي الغرامات المفروضة على المشغل</td><td className="border border-black p-0.5 font-bold text-red-600">({totalImposedPenalties.toLocaleString()})</td><td className="border border-black p-0.5 bg-gray-200"></td></tr>
+                                    <tr className="bg-[#c5b358] border-2 border-black font-bold text-[11px]"><td className="border border-black p-1 text-center" colSpan={2}>الإجمالي المستحق للشهر = المبلغ الإجمالي للخدمات + الضريبة - الغرامات والجزاءات</td><td className="border border-black p-1">{Math.round(finalTotal).toLocaleString()}</td></tr>
+                                    <tr className="bg-white border-2 border-black font-bold text-[11px]"><td className="border border-black p-1 text-center" colSpan={3}>{numberToArabicText(Math.floor(finalTotal))}</td></tr>
                                 </tbody>
                             </table>
                         </div>
-
-                        {/* الملخص والحسابات */}
-                        <div className="mb-6 p-4 border border-gray-300 rounded">
-                            <h3 className="font-bold mb-3">تفاصيل المبلغ المستحق (الضريبة والغرامات ومؤشر الأداء):</h3>
-                            
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <p><strong>غرامة غياب المشرف:</strong> 250 درهم عن كل يوم غياب</p>
-                                    <p>عدد أيام الغياب: {absentDays['مشرف المسلخ'] || 0}</p>
-                                    <p>المبلغ: {(absentDays['مشرف المسلخ'] || 0) * 250} درهم</p>
-                                </div>
-                                <div>
-                                    <p><strong>غرامة غياب المحاسب والقصاب وعمال النظافة:</strong> 150 درهم عن كل يوم غياب</p>
-                                    <p>عدد أيام الغياب: {(absentDays['محاسب'] || 0) + (absentDays['قصاب'] || 0) + (absentDays['عامل نظافة'] || 0)}</p>
-                                    <p>المبلغ: {((absentDays['محاسب'] || 0) + (absentDays['قصاب'] || 0) + (absentDays['عامل نظافة'] || 0)) * 150} درهم</p>
-                                </div>
+                        <div className="mt-auto">
+                            <div className="flex justify-between items-start mb-2 px-6">
+                                <div className="text-center"><div className="font-bold border border-black px-2 py-0.5 mb-4 bg-white min-w-[140px] shadow-sm">مدير الإدارة</div><div className="font-bold font-cairo text-base">{invoiceData?.signatures.deptManager}</div><div className="text-[10px] text-gray-500">{invoiceData?.signatures.deptManagerDate}</div></div>
+                                 <div className="text-center"><div className="font-bold border border-black px-2 py-0.5 mb-4 bg-white min-w-[140px] shadow-sm">ممثل المقاول</div><div className="font-bold font-cairo text-base">{invoiceData?.signatures.contractor}</div><div className="text-[10px] text-gray-500">{invoiceData?.signatures.contractorDate}</div></div>
+                                 <div className="text-center"><div className="font-bold border border-black px-2 py-0.5 mb-4 bg-white min-w-[140px] shadow-sm">الطبيب المناوب</div><div className="font-bold font-cairo text-base">{invoiceData?.signatures.enteredBy}</div><div className="text-[10px] text-gray-500">{invoiceData?.signatures.enteredDate}</div></div>
                             </div>
-
-                            <div className="mb-4">
-                                <h4 className="font-bold mb-2">مؤشر الأداء الشهري:</h4>
-                                <p>مؤشر الأداء: {kpiPercentage}%</p>
-                                {kpiPercentage >= 90 && <p className="text-green-600">(لا يتم فرض أي غرامات)</p>}
-                                {kpiPercentage >= 80 && kpiPercentage < 90 && <p className="text-yellow-600">(يتم فرض غرامة 5% من قيمة الفاتورة الشهرية)</p>}
-                                {kpiPercentage < 80 && <p className="text-red-600">(يتم فرض غرامة 10% من قيمة الفاتورة الشهرية)</p>}
-                            </div>
-
-                            <table className="invoice-table mb-4">
-                                <tbody>
-                                    <tr>
-                                        <td>مجموع الرواتب الشهرية ومعدات ومواد التنظيف</td>
-                                        <td>{(totalSalaries + CLEANING_MATERIAL_COST).toLocaleString()}</td>
-                                    </tr>
-                                    {extraLaborCost > 0 && (
-                                        <tr>
-                                            <td>مجموع خدمات العمالة الإضافية</td>
-                                            <td>{extraLaborCost.toLocaleString()}</td>
-                                        </tr>
-                                    )}
-                                    <tr className="total-row">
-                                        <td>إجمالي قيمة الخدمات خلال الشهر</td>
-                                        <td>{baseTotal.toLocaleString()}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>الضريبة 5%</td>
-                                        <td>{tax.toLocaleString()}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>الغرامات والجزاءات</td>
-                                        <td>{violationsTotal.toLocaleString()}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>خصم الغياب</td>
-                                        <td>{totalAbsentPenalties.toLocaleString()}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>خصم مؤشر الأداء ({kpiPercentage}%)</td>
-                                        <td>{kpiDeduction.toLocaleString()}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>حجز (5%) كفالة حسن تنفيذ الأعمال</td>
-                                        <td>{retention.toLocaleString()}</td>
-                                    </tr>
-                                    <tr className="total-row" style={{ backgroundColor: '#f0db7d' }}>
-                                        <td><strong>الإجمالي المستحق للشهر</strong></td>
-                                        <td><strong>{finalTotal.toLocaleString()}</strong></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <div className="text-center font-bold text-lg border-t-2 pt-4">
-                                {numberToArabicText(finalTotal)}
-                            </div>
+                             <div className="flex justify-between items-center bg-[#c5b358] p-0.5 font-bold border-2 border-black text-[9px]"><span>SH-KPI</span><span>نسخة الكترونية معتمدة</span><span>Page 1-1</span></div>
                         </div>
-
-                        {/* التوقيعات */}
-                        <div className="flex justify-between mt-8 pt-4 border-t">
-                            <div className="text-center w-1/3">
-                                <p className="font-bold mb-2">مدير الإدارة</p>
-                                <div className="h-12 border-b border-gray-400"></div>
-                                <p>{invoiceData?.signatures.deptManager || '_________'}</p>
-                            </div>
-                            <div className="text-center w-1/3">
-                                <p className="font-bold mb-2">ممثل المقاول</p>
-                                <div className="h-12 border-b border-gray-400"></div>
-                                <p>{invoiceData?.signatures.contractor || '_________'}</p>
-                            </div>
-                            <div className="text-center w-1/3">
-                                <p className="font-bold mb-2">الطبيب المناوب</p>
-                                <div className="h-12 border-b border-gray-400"></div>
-                                <p>{invoiceData?.signatures.enteredBy || '_________'}</p>
-                            </div>
-                        </div>
-
-                        {/* تذييل الفاتورة */}
-                       <div className="invoice-footer mt-6">
-    <div className="flex justify-between items-center">
-        <p className="text-left" dir="ltr">SH-KPI</p>
-        <p className="text-right" dir="ltr">نسخة الكترونية معتمدة - لاتحتاج توقيع </p>
-    </div>
-</div>
-                    </div>
+                   </div>
                 </div>
             );
         };
@@ -1468,7 +1475,7 @@
             const [submitted, setSubmitted] = useState(false);
 
             useEffect(() => {
-                const all = storage.extraLabor.getAll();
+                const all = DataService.extraLabor.getAll();
                 const existing = all.find(e => e.date === month && e.facilityId === (currentUser.facilityId || '1'));
                 if (existing) { setRows(existing.items); setSubmitted(existing.submitted); }
                 else { setRows(Array(12).fill(null).map((_, i) => ({ id: `el-${i}`, employeeName: '', jobTitle: '', dailyRate: 0, days: 0 }))); setSubmitted(false); }
@@ -1477,9 +1484,9 @@
             const updateRow = (idx, field, value) => { if (submitted) return; const newRows = [...rows]; newRows[idx] = { ...newRows[idx], [field]: value }; setRows(newRows); };
             const handleSubmit = () => {
                 const data = { id: `${month}-${currentUser.facilityId}`, date: month, facilityId: currentUser.facilityId || '1', items: rows, submitted: true, approvedBy: currentUser.name };
-                const all = storage.extraLabor.getAll(); const existingIdx = all.findIndex(e => e.id === data.id);
+                const all = DataService.extraLabor.getAll(); const existingIdx = all.findIndex(e => e.id === data.id);
                 if (existingIdx >= 0) all[existingIdx] = data; else all.push(data);
-                storage.extraLabor.save(all); setSubmitted(true); showToast('تم الاعتماد');
+                DataService.extraLabor.save(all); setSubmitted(true); showToast('تم الاعتماد');
             };
 
             const grandTotal = rows.reduce((sum, r) => sum + (r.dailyRate * r.days), 0);
@@ -1500,265 +1507,42 @@
             );
         };
 
-        // Settings - مع إدارة المواقع والمشغلين
+        // Settings - with Tabs
         const SettingsPage = () => {
             const { showToast } = useToast();
-            const [users, setUsers] = useState(storage.users.getAll());
+            const [users, setUsers] = useState(DataService.users.getAll());
             const [newUser, setNewUser] = useState({ role: UserRole.USER });
-            const [employees, setEmployees] = useState(storage.employees.getAll());
+            const [employees, setEmployees] = useState(DataService.employees.getAll());
             const [newEmp, setNewEmp] = useState({});
-            const [items, setItems] = useState(storage.items.getAll());
+            const [items, setItems] = useState(DataService.items.getAll());
             const [newItem, setNewItem] = useState({ category: 'ADMIN' });
-            const [violations, setViolations] = useState(storage.violationTypes.getAll());
+            const [violations, setViolations] = useState(DataService.violationTypes.getAll());
             const [newViolation, setNewViolation] = useState({});
             const [activeTab, setActiveTab] = useState('FACILITIES');
-            const [logo, setLogo] = useState(storage.settings.get().logo || null);
-            const [facilities, setFacilities] = useState(storage.facilities.getAll());
-            const [newFacility, setNewFacility] = useState({
-                contractNumber: '',
-                operatingCompany: '',
-                location: '',
-                phone: '',
-                email: ''
-            });
+            const [logo, setLogo] = useState(DataService.settings.get().logo || null);
+            const [facilities, setFacilities] = useState(DataService.facilities.getAll());
+            const [newFacility, setNewFacility] = useState({ contractNumber: '', operatingCompany: '', location: '', phone: '', email: '' });
             const [editingFacility, setEditingFacility] = useState(null);
             
-            const handleFile = (e, type) => { const file = e.target.files?.[0]; if(file){ const r = new FileReader(); r.onloadend=()=>{ if(type==='logo'){setLogo(r.result); storage.settings.save({...storage.settings.get(), logo: r.result});} }; r.readAsDataURL(file); } };
+            const handleFile = (e, type) => { const file = e.target.files?.[0]; if(file){ const r = new FileReader(); r.onloadend=()=>{ if(type==='logo'){setLogo(r.result); DataService.settings.save({...DataService.settings.get(), logo: r.result});} }; r.readAsDataURL(file); } };
+            const addUser = () => { if(!newUser.id)return; const u = [...users.filter(u=>u.id!==newUser.id), newUser]; setUsers(u); DataService.users.save(u); showToast('تم الحفظ'); };
+            const addEmp = () => { if(!newEmp.name)return; const e = {...newEmp, id: `e${Date.now()}`}; const u = [...employees, e]; setEmployees(u); DataService.employees.save(u); };
+            const addItem = () => { if(!newItem.name)return; const i = {...newItem, id: `i${Date.now()}`}; const u = [...items, i]; setItems(u); DataService.items.save(u); };
+            const addViol = () => { if(!newViolation.name)return; const v = {...newViolation, id: `v${Date.now()}`}; const u = [...violations, v]; setViolations(u); DataService.violationTypes.save(u); };
             
-            const addUser = () => { if(!newUser.id)return; const u = [...users.filter(u=>u.id!==newUser.id), newUser]; setUsers(u); storage.users.save(u); showToast('تم الحفظ'); };
-            const addEmp = () => { if(!newEmp.name)return; const e = {...newEmp, id: `e${Date.now()}`}; const u = [...employees, e]; setEmployees(u); storage.employees.save(u); };
-            const addItem = () => { if(!newItem.name)return; const i = {...newItem, id: `i${Date.now()}`}; const u = [...items, i]; setItems(u); storage.items.save(u); };
-            const addViol = () => { if(!newViolation.name)return; const v = {...newViolation, id: `v${Date.now()}`}; const u = [...violations, v]; setViolations(u); storage.violationTypes.save(u); };
-            
-            const addFacility = () => {
-                if (!newFacility.name) return;
-                const f = {
-                    ...newFacility,
-                    id: `f${Date.now()}`,
-                    name: newFacility.name
-                };
-                const updated = [...facilities, f];
-                setFacilities(updated);
-                storage.facilities.save(updated);
-                setNewFacility({
-                    contractNumber: '',
-                    operatingCompany: '',
-                    location: '',
-                    phone: '',
-                    email: ''
-                });
-                showToast('تم إضافة الموقع');
-            };
-            
-            const updateFacility = () => {
-                if (!editingFacility) return;
-                const updated = facilities.map(f => 
-                    f.id === editingFacility.id ? editingFacility : f
-                );
-                setFacilities(updated);
-                storage.facilities.save(updated);
-                setEditingFacility(null);
-                showToast('تم تحديث الموقع');
-            };
+            const addFacility = () => { if (!newFacility.name) return; const f = { ...newFacility, id: `f${Date.now()}`, name: newFacility.name }; const updated = [...facilities, f]; setFacilities(updated); DataService.facilities.save(updated); setNewFacility({ contractNumber: '', operatingCompany: '', location: '', phone: '', email: '' }); showToast('تم إضافة الموقع'); };
+            const updateFacility = () => { if (!editingFacility) return; const updated = facilities.map(f => f.id === editingFacility.id ? editingFacility : f); setFacilities(updated); DataService.facilities.save(updated); setEditingFacility(null); showToast('تم تحديث الموقع'); };
 
             return (
                 <div className="space-y-6 bg-white p-6 rounded shadow mt-6">
                     <h2 className="text-xl font-bold">الاعدادات</h2>
-                    <div className="flex border-b mb-4 overflow-x-auto">
-                        {['FACILITIES','USERS','EMPLOYEES','ITEMS','VIOLATIONS','GENERAL'].map(t => (
-                            <button 
-                                key={t} 
-                                onClick={()=>setActiveTab(t)} 
-                                className={`px-4 py-2 ${activeTab===t?'border-b-2 border-gold font-bold':''}`}
-                            >
-                                {t==='FACILITIES'?'المواقع':t==='USERS'?'المستخدمين':t==='EMPLOYEES'?'الموظفين':t==='ITEMS'?'البنود':t==='VIOLATIONS'?'المخالفات':'عام'}
-                            </button>
-                        ))}
-                    </div>
-
-                    {activeTab === 'GENERAL' && (
-                        <div className="grid md:grid-cols-2 gap-8">
-                            <div><h3 className="font-bold mb-2">الشعار</h3><div className="w-40 h-40 border-2 border-dashed flex items-center justify-center overflow-hidden mb-2">{logo?<img src={logo} className="w-full"/>:<span className="text-gray-400">لا يوجد</span>}</div><input type="file" onChange={e=>handleFile(e,'logo')}/></div>
-                        </div>
-                    )}
-
-                    {activeTab === 'FACILITIES' && (
-                        <div className="space-y-6">
-                            <div className="bg-gray-50 p-4 rounded">
-                                <h3 className="font-bold mb-4">{editingFacility ? 'تعديل موقع' : 'إضافة موقع جديد'}</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    <input 
-                                        placeholder="اسم المسلخ *" 
-                                        value={editingFacility ? editingFacility.name : newFacility.name || ''}
-                                        onChange={e => editingFacility 
-                                            ? setEditingFacility({...editingFacility, name: e.target.value})
-                                            : setNewFacility({...newFacility, name: e.target.value})
-                                        }
-                                        className="border p-2"
-                                    />
-                                    <input 
-                                        placeholder="رقم العقد" 
-                                        value={editingFacility ? editingFacility.contractNumber : newFacility.contractNumber}
-                                        onChange={e => editingFacility 
-                                            ? setEditingFacility({...editingFacility, contractNumber: e.target.value})
-                                            : setNewFacility({...newFacility, contractNumber: e.target.value})
-                                        }
-                                        className="border p-2"
-                                    />
-                                    <input 
-                                        placeholder="الشركة المشغلة" 
-                                        value={editingFacility ? editingFacility.operatingCompany : newFacility.operatingCompany}
-                                        onChange={e => editingFacility 
-                                            ? setEditingFacility({...editingFacility, operatingCompany: e.target.value})
-                                            : setNewFacility({...newFacility, operatingCompany: e.target.value})
-                                        }
-                                        className="border p-2"
-                                    />
-                                    <input 
-                                        placeholder="الموقع الجغرافي" 
-                                        value={editingFacility ? editingFacility.location : newFacility.location}
-                                        onChange={e => editingFacility 
-                                            ? setEditingFacility({...editingFacility, location: e.target.value})
-                                            : setNewFacility({...newFacility, location: e.target.value})
-                                        }
-                                        className="border p-2"
-                                    />
-                                    <input 
-                                        placeholder="الهاتف" 
-                                        value={editingFacility ? editingFacility.phone : newFacility.phone}
-                                        onChange={e => editingFacility 
-                                            ? setEditingFacility({...editingFacility, phone: e.target.value})
-                                            : setNewFacility({...newFacility, phone: e.target.value})
-                                        }
-                                        className="border p-2"
-                                    />
-                                    <input 
-                                        placeholder="البريد الإلكتروني" 
-                                        value={editingFacility ? editingFacility.email : newFacility.email}
-                                        onChange={e => editingFacility 
-                                            ? setEditingFacility({...editingFacility, email: e.target.value})
-                                            : setNewFacility({...newFacility, email: e.target.value})
-                                        }
-                                        className="border p-2"
-                                    />
-                                </div>
-                                <div className="mt-4">
-                                    {editingFacility ? (
-                                        <div className="flex gap-2">
-                                            <button onClick={updateFacility} className="bg-green-600 text-white px-4 py-2 rounded">
-                                                حفظ التعديلات
-                                            </button>
-                                            <button onClick={() => setEditingFacility(null)} className="bg-gray-600 text-white px-4 py-2 rounded">
-                                                إلغاء
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button onClick={addFacility} className="bg-blue-600 text-white px-4 py-2 rounded">
-                                            إضافة موقع
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="mt-6">
-                                <h3 className="font-bold mb-4">قائمة المواقع</h3>
-                                <div className="space-y-4">
-                                    {facilities.map(facility => (
-                                        <div key={facility.id} className="border rounded p-4 hover:bg-gray-50">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-lg">{facility.name}</h4>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm">
-                                                        <div>
-                                                            <span className="font-semibold">رقم العقد:</span>
-                                                            <p>{facility.contractNumber || 'غير محدد'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-semibold">الشركة المشغلة:</span>
-                                                            <p>{facility.operatingCompany || 'غير محدد'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-semibold">الموقع:</span>
-                                                            <p>{facility.location || 'غير محدد'}</p>
-                                                        </div>
-                                                        <div>
-                                                            <span className="font-semibold">الاتصال:</span>
-                                                            <p>{facility.phone || 'غير محدد'}</p>
-                                                            <p>{facility.email || 'غير محدد'}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button 
-                                                        onClick={() => setEditingFacility(facility)}
-                                                        className="text-blue-600 hover:text-blue-800"
-                                                    >
-                                                        <i className="fa fa-edit"></i>
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            const updated = facilities.filter(f => f.id !== facility.id);
-                                                            setFacilities(updated);
-                                                            storage.facilities.save(updated);
-                                                            showToast('تم حذف الموقع');
-                                                        }}
-                                                        className="text-red-600 hover:text-red-800"
-                                                    >
-                                                        <i className="fa fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'USERS' && (
-                        <div>
-                            <div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 mb-4">
-                                <input placeholder="الرقم" onChange={e => setNewUser({...newUser, id: e.target.value})} className="border p-2"/>
-                                <input placeholder="الاسم" onChange={e => setNewUser({...newUser, name: e.target.value})} className="border p-2"/>
-                                <select onChange={e => setNewUser({...newUser, role: e.target.value})} className="border p-2">{Object.values(UserRole).map(r=><option key={r} value={r}>{r}</option>)}</select>
-                                <select onChange={e => setNewUser({...newUser, facilityId: e.target.value})} className="border p-2"><option value="">الموقع</option>{facilities.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-                                <button onClick={addUser} className="bg-green-600 text-white col-span-4">حفظ / تحديث</button>
-                            </div>
-                            <ul>{users.map(u => <li key={u.id} className="border-b p-2 flex justify-between"><span>{u.name} ({u.role}) - {facilities.find(f=>f.id===u.facilityId)?.name}</span><button className="text-red-500" onClick={()=>{const n=users.filter(x=>x.id!==u.id); setUsers(n); storage.users.save(n);}}>حذف</button></li>)}</ul>
-                        </div>
-                    )}
-                    {activeTab === 'EMPLOYEES' && (
-                        <div>
-                            <div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 mb-4">
-                                <input placeholder="الاسم" onChange={e => setNewEmp({...newEmp, name: e.target.value})} className="border p-2"/>
-                                <input placeholder="الوظيفة" onChange={e => setNewEmp({...newEmp, jobTitle: e.target.value})} className="border p-2"/>
-                                <input type="number" placeholder="الراتب" onChange={e => setNewEmp({...newEmp, salary: Number(e.target.value)})} className="border p-2"/>
-                                <select onChange={e => setNewEmp({...newEmp, facilityId: e.target.value})} className="border p-2"><option value="">الموقع</option>{facilities.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select>
-                                <button onClick={addEmp} className="bg-green-600 text-white col-span-4">إضافة</button>
-                            </div>
-                            <ul>{employees.map(e => <li key={e.id} className="border-b p-2 flex justify-between"><span>{e.name} - {facilities.find(f=>f.id===e.facilityId)?.name}</span><button className="text-red-500" onClick={()=>{const n=employees.filter(x=>x.id!==e.id); setEmployees(n); storage.employees.save(n);}}>حذف</button></li>)}</ul>
-                        </div>
-                    )}
-                     {activeTab === 'ITEMS' && (
-                        <div>
-                            <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 mb-4">
-                                <input placeholder="البند" onChange={e => setNewItem({...newItem, name: e.target.value})} className="border p-2"/>
-                                <select onChange={e => setNewItem({...newItem, category: e.target.value})} className="border p-2"><option value="ADMIN">إدارية</option><option value="OPERATIONAL">تشغيلية</option><option value="PROFESSIONAL">مهنية</option><option value="HYGIENE">نظافة</option><option value="SAFETY">سلامة</option><option value="LAB">مختبر</option></select>
-                                <button onClick={addItem} className="bg-green-600 text-white">إضافة</button>
-                            </div>
-                            <ul>{items.map(i => <li key={i.id} className="border-b p-2 flex justify-between"><span>{i.name} ({i.category})</span><button className="text-red-500" onClick={()=>{const n=items.filter(x=>x.id!==i.id); setItems(n); storage.items.save(n);}}>حذف</button></li>)}</ul>
-                        </div>
-                    )}
-                    {activeTab === 'VIOLATIONS' && (
-                        <div>
-                            <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 mb-4">
-                                <input placeholder="المخالفة" onChange={e => setNewViolation({...newViolation, name: e.target.value})} className="border p-2"/>
-                                <input type="number" placeholder="الغرامة" onChange={e => setNewViolation({...newViolation, fineAmount: Number(e.target.value)})} className="border p-2"/>
-                                <button onClick={addViol} className="bg-green-600 text-white">إضافة</button>
-                            </div>
-                            <ul>{violations.map(v => <li key={v.id} className="border-b p-2 flex justify-between"><span>{v.name} ({v.fineAmount})</span><button className="text-red-500" onClick={()=>{const n=violations.filter(x=>x.id!==v.id); setViolations(n); storage.violationTypes.save(n);}}>حذف</button></li>)}</ul>
-                        </div>
-                    )}
+                    <div className="flex border-b mb-4 overflow-x-auto">{['FACILITIES','USERS','EMPLOYEES','ITEMS','VIOLATIONS','GENERAL'].map(t => (<button key={t} onClick={()=>setActiveTab(t)} className={`px-4 py-2 ${activeTab===t?'border-b-2 border-gold font-bold':''}`}>{t==='FACILITIES'?'المواقع':t==='USERS'?'المستخدمين':t==='EMPLOYEES'?'الموظفين':t==='ITEMS'?'البنود':t==='VIOLATIONS'?'المخالفات':'عام'}</button>))}</div>
+                    {activeTab === 'GENERAL' && (<div className="grid md:grid-cols-2 gap-8"><div><h3 className="font-bold mb-2">الشعار</h3><div className="w-40 h-40 border-2 border-dashed flex items-center justify-center overflow-hidden mb-2">{logo?<img src={logo} className="w-full"/>:<span className="text-gray-400">لا يوجد</span>}</div><input type="file" onChange={e=>handleFile(e,'logo')}/></div></div>)}
+                    {activeTab === 'FACILITIES' && (<div className="space-y-6"><div className="bg-gray-50 p-4 rounded"><h3 className="font-bold mb-4">{editingFacility ? 'تعديل موقع' : 'إضافة موقع جديد'}</h3><div className="grid grid-cols-2 md:grid-cols-3 gap-4"><input placeholder="اسم المسلخ *" value={editingFacility ? editingFacility.name : newFacility.name || ''} onChange={e => editingFacility ? setEditingFacility({...editingFacility, name: e.target.value}) : setNewFacility({...newFacility, name: e.target.value})} className="border p-2"/><input placeholder="رقم العقد" value={editingFacility ? editingFacility.contractNumber : newFacility.contractNumber} onChange={e => editingFacility ? setEditingFacility({...editingFacility, contractNumber: e.target.value}) : setNewFacility({...newFacility, contractNumber: e.target.value})} className="border p-2"/><input placeholder="الشركة المشغلة" value={editingFacility ? editingFacility.operatingCompany : newFacility.operatingCompany} onChange={e => editingFacility ? setEditingFacility({...editingFacility, operatingCompany: e.target.value}) : setNewFacility({...newFacility, operatingCompany: e.target.value})} className="border p-2"/><input placeholder="الموقع الجغرافي" value={editingFacility ? editingFacility.location : newFacility.location} onChange={e => editingFacility ? setEditingFacility({...editingFacility, location: e.target.value}) : setNewFacility({...newFacility, location: e.target.value})} className="border p-2"/><input placeholder="الهاتف" value={editingFacility ? editingFacility.phone : newFacility.phone} onChange={e => editingFacility ? setEditingFacility({...editingFacility, phone: e.target.value}) : setNewFacility({...newFacility, phone: e.target.value})} className="border p-2"/><input placeholder="البريد الإلكتروني" value={editingFacility ? editingFacility.email : newFacility.email} onChange={e => editingFacility ? setEditingFacility({...editingFacility, email: e.target.value}) : setNewFacility({...newFacility, email: e.target.value})} className="border p-2"/></div><div className="mt-4">{editingFacility ? (<div className="flex gap-2"><button onClick={updateFacility} className="bg-green-600 text-white px-4 py-2 rounded">حفظ التعديلات</button><button onClick={() => setEditingFacility(null)} className="bg-gray-600 text-white px-4 py-2 rounded">إلغاء</button></div>) : (<button onClick={addFacility} className="bg-blue-600 text-white px-4 py-2 rounded">إضافة موقع</button>)}</div></div><div className="mt-6"><h3 className="font-bold mb-4">قائمة المواقع</h3><div className="space-y-4">{facilities.map(facility => (<div key={facility.id} className="border rounded p-4 hover:bg-gray-50"><div className="flex justify-between items-start"><div className="flex-1"><h4 className="font-bold text-lg">{facility.name}</h4><div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm"><div><span className="font-semibold">رقم العقد:</span><p>{facility.contractNumber || 'غير محدد'}</p></div><div><span className="font-semibold">الشركة المشغلة:</span><p>{facility.operatingCompany || 'غير محدد'}</p></div><div><span className="font-semibold">الموقع:</span><p>{facility.location || 'غير محدد'}</p></div><div><span className="font-semibold">الاتصال:</span><p>{facility.phone || 'غير محدد'}</p><p>{facility.email || 'غير محدد'}</p></div></div></div><div className="flex gap-2"><button onClick={() => setEditingFacility(facility)} className="text-blue-600 hover:text-blue-800"><i className="fa fa-edit"></i></button><button onClick={() => { const updated = facilities.filter(f => f.id !== facility.id); setFacilities(updated); DataService.facilities.save(updated); showToast('تم حذف الموقع'); }} className="text-red-600 hover:text-red-800"><i className="fa fa-trash"></i></button></div></div></div>))}</div></div></div>)}
+                    {activeTab === 'USERS' && (<div><div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 mb-4"><input placeholder="الرقم" onChange={e => setNewUser({...newUser, id: e.target.value})} className="border p-2"/><input placeholder="الاسم" onChange={e => setNewUser({...newUser, name: e.target.value})} className="border p-2"/><select onChange={e => setNewUser({...newUser, role: e.target.value})} className="border p-2">{Object.values(UserRole).map(r=><option key={r} value={r}>{r}</option>)}</select><select onChange={e => setNewUser({...newUser, facilityId: e.target.value})} className="border p-2"><option value="">الموقع</option>{facilities.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select><button onClick={addUser} className="bg-green-600 text-white col-span-4">حفظ / تحديث</button></div><ul>{users.map(u => <li key={u.id} className="border-b p-2 flex justify-between"><span>{u.name} ({u.role}) - {facilities.find(f=>f.id===u.facilityId)?.name}</span><button className="text-red-500" onClick={()=>{const n=users.filter(x=>x.id!==u.id); setUsers(n); DataService.users.save(n);}}>حذف</button></li>)}</ul></div>)}
+                    {activeTab === 'EMPLOYEES' && (<div><div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 mb-4"><input placeholder="الاسم" onChange={e => setNewEmp({...newEmp, name: e.target.value})} className="border p-2"/><input placeholder="الوظيفة" onChange={e => setNewEmp({...newEmp, jobTitle: e.target.value})} className="border p-2"/><input type="number" placeholder="الراتب" onChange={e => setNewEmp({...newEmp, salary: Number(e.target.value)})} className="border p-2"/><select onChange={e => setNewEmp({...newEmp, facilityId: e.target.value})} className="border p-2"><option value="">الموقع</option>{facilities.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select><button onClick={addEmp} className="bg-green-600 text-white col-span-4">إضافة</button></div><ul>{employees.map(e => <li key={e.id} className="border-b p-2 flex justify-between"><span>{e.name} - {facilities.find(f=>f.id===e.facilityId)?.name}</span><button className="text-red-500" onClick={()=>{const n=employees.filter(x=>x.id!==e.id); setEmployees(n); DataService.employees.save(n);}}>حذف</button></li>)}</ul></div>)}
+                    {activeTab === 'ITEMS' && (<div><div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 mb-4"><input placeholder="البند" onChange={e => setNewItem({...newItem, name: e.target.value})} className="border p-2"/><select onChange={e => setNewItem({...newItem, category: e.target.value})} className="border p-2"><option value="ADMIN">إدارية</option><option value="OPERATIONAL">تشغيلية</option><option value="PROFESSIONAL">مهنية</option><option value="HYGIENE">نظافة</option><option value="SAFETY">سلامة</option><option value="LAB">مختبر</option></select><button onClick={addItem} className="bg-green-600 text-white">إضافة</button></div><ul>{items.map(i => <li key={i.id} className="border-b p-2 flex justify-between"><span>{i.name} ({i.category})</span><button className="text-red-500" onClick={()=>{const n=items.filter(x=>x.id!==i.id); setItems(n); DataService.items.save(n);}}>حذف</button></li>)}</ul></div>)}
+                    {activeTab === 'VIOLATIONS' && (<div><div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 mb-4"><input placeholder="المخالفة" onChange={e => setNewViolation({...newViolation, name: e.target.value})} className="border p-2"/><input type="number" placeholder="الغرامة" onChange={e => setNewViolation({...newViolation, fineAmount: Number(e.target.value)})} className="border p-2"/><button onClick={addViol} className="bg-green-600 text-white">إضافة</button></div><ul>{violations.map(v => <li key={v.id} className="border-b p-2 flex justify-between"><span>{v.name} ({v.fineAmount})</span><button className="text-red-500" onClick={()=>{const n=violations.filter(x=>x.id!==v.id); setViolations(n); DataService.violationTypes.save(n);}}>حذف</button></li>)}</ul></div>)}
                 </div>
             );
         };
@@ -1766,22 +1550,15 @@
         // --- APP ROOT ---
         const App = () => {
             const [currentUser, setCurrentUser] = useState(null);
-            const [toast, setToast] = useState(null);
 
             useEffect(() => { const s = localStorage.getItem('currentUser'); if (s) setCurrentUser(JSON.parse(s)); }, []);
             const handleLogin = (u) => { setCurrentUser(u); localStorage.setItem('currentUser', JSON.stringify(u)); };
             const handleLogout = () => { setCurrentUser(null); localStorage.removeItem('currentUser'); };
 
-            const showToast = (msg) => {
-                setToast(msg);
-                setTimeout(() => setToast(null), 2000);
-            };
-
             if (!currentUser) return <Login onLogin={handleLogin} />;
 
             return (
-                <ToastContext.Provider value={{ showToast }}>
-                    {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+                <ToastProvider>
                     <HashRouter>
                         <Layout currentUser={currentUser} onLogout={handleLogout}>
                             <Routes>
@@ -1791,13 +1568,13 @@
                                 <Route path="/monthly-evaluation" element={<MonthlyEvaluationPage currentUser={currentUser} />} />
                                 <Route path="/monthly-report" element={<MonthlyReportPage currentUser={currentUser} />} />
                                 <Route path="/kpi" element={<KPIPage currentUser={currentUser} />} />
-                                <Route path="/invoice" element={<InvoicePage currentUser={currentUser} />} />
+                                <Route path="/invoice" element={<MonthlyInvoicePage currentUser={currentUser} />} />
                                 <Route path="/extra-labor" element={<ExtraLaborPage currentUser={currentUser} />} />
                                 <Route path="/settings" element={<SettingsPage />} />
                             </Routes>
                         </Layout>
                     </HashRouter>
-                </ToastContext.Provider>
+                </ToastProvider>
             );
         };
 
