@@ -124,10 +124,35 @@
             { id: '99999', name: 'محمد عمر', role: UserRole.USER, facilityId: '1' },
         ];
 
+        // تحديث: إضافة بيانات المشغلين وأرقام العقود
         const INITIAL_FACILITIES = [
-            { id: '1', name: 'مسلخ أ' },
-            { id: '2', name: 'مسلخ ب' },
-            { id: '3', name: 'مسلخ ج' },
+            { 
+                id: '1', 
+                name: 'مسلخ أ',
+                contractNumber: 'CNT-2024-001',
+                operatingCompany: 'شركة الخدمات الحديثة',
+                location: 'المنطقة الصناعية - القطاع 5',
+                phone: '0112345678',
+                email: 'info@modern-services.com'
+            },
+            { 
+                id: '2', 
+                name: 'مسلخ ب',
+                contractNumber: 'CNT-2024-002',
+                operatingCompany: 'شركة الإبداع للمقاولات',
+                location: 'حي المصانع - طريق الملك فهد',
+                phone: '0223456789',
+                email: 'contracts@ibdaa-co.com'
+            },
+            { 
+                id: '3', 
+                name: 'مسلخ ج',
+                contractNumber: 'CNT-2024-003',
+                operatingCompany: 'شركة النظافة المتكاملة',
+                location: 'المنطقة الشرقية - مجمع الصناعات',
+                phone: '0334567890',
+                email: 'operations@cleaning-integrated.com'
+            },
         ];
 
         const INITIAL_EMPLOYEES = [
@@ -980,7 +1005,7 @@
             );
         };
 
-        // Invoice - المحسنة مع تصميم مطابق للملف
+        // Invoice - المحسنة مع إدارة المواقع والمشغلين
         const InvoicePage = ({ currentUser }) => {
             const { showToast } = useToast();
             const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -991,6 +1016,10 @@
             const [kpiPercentage, setKpiPercentage] = useState(100);
             const [extraLabor, setExtraLabor] = useState(null);
             const [absentDays, setAbsentDays] = useState({});
+            const [contractNumber, setContractNumber] = useState('');
+            const [paymentNumber, setPaymentNumber] = useState('');
+            const [operatingCompany, setOperatingCompany] = useState('');
+            const [slaughterhouseName, setSlaughterhouseName] = useState('');
             const canSelect = [UserRole.ADMIN, UserRole.DEPT_MANAGER, UserRole.SECTION_HEAD].includes(currentUser.role);
             
             useEffect(() => {
@@ -999,8 +1028,23 @@
             }, []);
 
             useEffect(() => {
+                // تحميل بيانات الموقع المحدد
+                const selectedFacilityData = facilities.find(f => f.id === selectedFacility);
+                if (selectedFacilityData) {
+                    setContractNumber(selectedFacilityData.contractNumber || '');
+                    setOperatingCompany(selectedFacilityData.operatingCompany || '');
+                    setSlaughterhouseName(selectedFacilityData.name || '');
+                }
+                
                 // تحميل بيانات الفاتورة المخزنة
-                setInvoiceData(storage.invoices.getAll().find(i => i.month === month && i.facilityId === selectedFacility) || null);
+                const invoice = storage.invoices.getAll().find(i => i.month === month && i.facilityId === selectedFacility);
+                setInvoiceData(invoice || null);
+                
+                if (invoice) {
+                    setPaymentNumber(invoice.paymentNumber || '');
+                    setContractNumber(invoice.contractNumber || selectedFacilityData?.contractNumber || '');
+                    setOperatingCompany(invoice.operatingCompany || selectedFacilityData?.operatingCompany || '');
+                }
                 
                 // حساب المخالفات
                 const v = storage.violations.getAll().filter(v => v.date.startsWith(month) && v.facilityId === selectedFacility).reduce((s, v) => s + v.total, 0);
@@ -1025,7 +1069,7 @@
                 });
                 setAbsentDays(absences);
 
-            }, [month, selectedFacility]);
+            }, [month, selectedFacility, facilities]);
 
             // حساب البيانات بناءً على الهيكل
             const calculateEmployeeCosts = () => {
@@ -1080,6 +1124,10 @@
                     status: 'SUBMITTED', 
                     approvals: {}, 
                     signatures: { enteredBy: currentUser.name },
+                    contractNumber,
+                    paymentNumber: paymentNumber || `PAY-${month}-${selectedFacility}`,
+                    operatingCompany,
+                    slaughterhouseName,
                     data: {
                         employeeCosts,
                         baseTotal,
@@ -1144,6 +1192,33 @@
                         )}
                         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
                         
+                        {/* حقول إضافية للمستخدمين */}
+                        {isUser && (
+                            <div className="flex flex-wrap gap-2">
+                                <input 
+                                    type="text" 
+                                    value={contractNumber} 
+                                    onChange={e => setContractNumber(e.target.value)}
+                                    placeholder="رقم العقد" 
+                                    className="border p-2 rounded w-40"
+                                />
+                                <input 
+                                    type="text" 
+                                    value={paymentNumber} 
+                                    onChange={e => setPaymentNumber(e.target.value)}
+                                    placeholder="رقم الدفعة" 
+                                    className="border p-2 rounded w-40"
+                                />
+                                <input 
+                                    type="text" 
+                                    value={operatingCompany} 
+                                    onChange={e => setOperatingCompany(e.target.value)}
+                                    placeholder="الشركة المشغلة" 
+                                    className="border p-2 rounded w-40"
+                                />
+                            </div>
+                        )}
+                        
                         {isUser && (!invoiceData || invoiceData.status === 'PENDING') && (
                             <button onClick={handleUserSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">
                                 تقديم للاعتماد
@@ -1172,12 +1247,13 @@
                             <h2 className="text-xl font-bold mb-4">الفاتورة الشهرية</h2>
                             <div className="flex justify-between text-sm">
                                 <div className="text-right">
-                                    <p><strong>عقد رقم:</strong> ________</p>
+                                    <p><strong>عقد رقم:</strong> {contractNumber || '________'}</p>
                                     <p><strong>عن شهر:</strong> {formatMonthYearArabic(month)}</p>
+                                    <p><strong>الدفعة رقم:</strong> {paymentNumber || '________'}</p>
                                 </div>
                                 <div className="text-left">
-                                    <p><strong>اسم المسلخ:</strong> {facilities.find(f => f.id === selectedFacility)?.name || ''}</p>
-                                    <p><strong>الشركة المشغلة:</strong> ________</p>
+                                    <p><strong>اسم المسلخ:</strong> {slaughterhouseName || facilities.find(f => f.id === selectedFacility)?.name || ''}</p>
+                                    <p><strong>الشركة المشغلة:</strong> {operatingCompany || facilities.find(f => f.id === selectedFacility)?.operatingCompany || '________'}</p>
                                 </div>
                             </div>
                         </div>
@@ -1373,10 +1449,12 @@
                         </div>
 
                         {/* تذييل الفاتورة */}
-                        <div className="invoice-footer mt-6 text-center">
-                            <p>SH-KPI - نسخة الكترونية معتمدة</p>
-                            <p>الدورة: ________ - الدفعة رقم: ________</p>
-                        </div>
+                       <div className="invoice-footer mt-6">
+    <div className="flex justify-between items-center">
+        <p className="text-left" dir="ltr">SH-KPI</p>
+        <p className="text-right" dir="ltr">نسخة الكترونية معتمدة - لاتحتاج توقيع </p>
+    </div>
+</div>
                     </div>
                 </div>
             );
@@ -1422,7 +1500,7 @@
             );
         };
 
-        // Settings
+        // Settings - مع إدارة المواقع والمشغلين
         const SettingsPage = () => {
             const { showToast } = useToast();
             const [users, setUsers] = useState(storage.users.getAll());
@@ -1433,26 +1511,207 @@
             const [newItem, setNewItem] = useState({ category: 'ADMIN' });
             const [violations, setViolations] = useState(storage.violationTypes.getAll());
             const [newViolation, setNewViolation] = useState({});
-            const [activeTab, setActiveTab] = useState('USERS');
+            const [activeTab, setActiveTab] = useState('FACILITIES');
             const [logo, setLogo] = useState(storage.settings.get().logo || null);
-            const facilities = storage.facilities.getAll();
+            const [facilities, setFacilities] = useState(storage.facilities.getAll());
+            const [newFacility, setNewFacility] = useState({
+                contractNumber: '',
+                operatingCompany: '',
+                location: '',
+                phone: '',
+                email: ''
+            });
+            const [editingFacility, setEditingFacility] = useState(null);
             
             const handleFile = (e, type) => { const file = e.target.files?.[0]; if(file){ const r = new FileReader(); r.onloadend=()=>{ if(type==='logo'){setLogo(r.result); storage.settings.save({...storage.settings.get(), logo: r.result});} }; r.readAsDataURL(file); } };
+            
             const addUser = () => { if(!newUser.id)return; const u = [...users.filter(u=>u.id!==newUser.id), newUser]; setUsers(u); storage.users.save(u); showToast('تم الحفظ'); };
             const addEmp = () => { if(!newEmp.name)return; const e = {...newEmp, id: `e${Date.now()}`}; const u = [...employees, e]; setEmployees(u); storage.employees.save(u); };
             const addItem = () => { if(!newItem.name)return; const i = {...newItem, id: `i${Date.now()}`}; const u = [...items, i]; setItems(u); storage.items.save(u); };
             const addViol = () => { if(!newViolation.name)return; const v = {...newViolation, id: `v${Date.now()}`}; const u = [...violations, v]; setViolations(u); storage.violationTypes.save(u); };
+            
+            const addFacility = () => {
+                if (!newFacility.name) return;
+                const f = {
+                    ...newFacility,
+                    id: `f${Date.now()}`,
+                    name: newFacility.name
+                };
+                const updated = [...facilities, f];
+                setFacilities(updated);
+                storage.facilities.save(updated);
+                setNewFacility({
+                    contractNumber: '',
+                    operatingCompany: '',
+                    location: '',
+                    phone: '',
+                    email: ''
+                });
+                showToast('تم إضافة الموقع');
+            };
+            
+            const updateFacility = () => {
+                if (!editingFacility) return;
+                const updated = facilities.map(f => 
+                    f.id === editingFacility.id ? editingFacility : f
+                );
+                setFacilities(updated);
+                storage.facilities.save(updated);
+                setEditingFacility(null);
+                showToast('تم تحديث الموقع');
+            };
 
             return (
                 <div className="space-y-6 bg-white p-6 rounded shadow mt-6">
                     <h2 className="text-xl font-bold">الاعدادات</h2>
                     <div className="flex border-b mb-4 overflow-x-auto">
-                        {['USERS','EMPLOYEES','ITEMS','VIOLATIONS','GENERAL'].map(t => <button key={t} onClick={()=>setActiveTab(t)} className={`px-4 py-2 ${activeTab===t?'border-b-2 border-gold font-bold':''}`}>{t==='USERS'?'المستخدمين':t==='EMPLOYEES'?'الموظفين':t==='ITEMS'?'البنود':t==='VIOLATIONS'?'المخالفات':'عام'}</button>)}
+                        {['FACILITIES','USERS','EMPLOYEES','ITEMS','VIOLATIONS','GENERAL'].map(t => (
+                            <button 
+                                key={t} 
+                                onClick={()=>setActiveTab(t)} 
+                                className={`px-4 py-2 ${activeTab===t?'border-b-2 border-gold font-bold':''}`}
+                            >
+                                {t==='FACILITIES'?'المواقع':t==='USERS'?'المستخدمين':t==='EMPLOYEES'?'الموظفين':t==='ITEMS'?'البنود':t==='VIOLATIONS'?'المخالفات':'عام'}
+                            </button>
+                        ))}
                     </div>
 
                     {activeTab === 'GENERAL' && (
                         <div className="grid md:grid-cols-2 gap-8">
                             <div><h3 className="font-bold mb-2">الشعار</h3><div className="w-40 h-40 border-2 border-dashed flex items-center justify-center overflow-hidden mb-2">{logo?<img src={logo} className="w-full"/>:<span className="text-gray-400">لا يوجد</span>}</div><input type="file" onChange={e=>handleFile(e,'logo')}/></div>
+                        </div>
+                    )}
+
+                    {activeTab === 'FACILITIES' && (
+                        <div className="space-y-6">
+                            <div className="bg-gray-50 p-4 rounded">
+                                <h3 className="font-bold mb-4">{editingFacility ? 'تعديل موقع' : 'إضافة موقع جديد'}</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <input 
+                                        placeholder="اسم المسلخ *" 
+                                        value={editingFacility ? editingFacility.name : newFacility.name || ''}
+                                        onChange={e => editingFacility 
+                                            ? setEditingFacility({...editingFacility, name: e.target.value})
+                                            : setNewFacility({...newFacility, name: e.target.value})
+                                        }
+                                        className="border p-2"
+                                    />
+                                    <input 
+                                        placeholder="رقم العقد" 
+                                        value={editingFacility ? editingFacility.contractNumber : newFacility.contractNumber}
+                                        onChange={e => editingFacility 
+                                            ? setEditingFacility({...editingFacility, contractNumber: e.target.value})
+                                            : setNewFacility({...newFacility, contractNumber: e.target.value})
+                                        }
+                                        className="border p-2"
+                                    />
+                                    <input 
+                                        placeholder="الشركة المشغلة" 
+                                        value={editingFacility ? editingFacility.operatingCompany : newFacility.operatingCompany}
+                                        onChange={e => editingFacility 
+                                            ? setEditingFacility({...editingFacility, operatingCompany: e.target.value})
+                                            : setNewFacility({...newFacility, operatingCompany: e.target.value})
+                                        }
+                                        className="border p-2"
+                                    />
+                                    <input 
+                                        placeholder="الموقع الجغرافي" 
+                                        value={editingFacility ? editingFacility.location : newFacility.location}
+                                        onChange={e => editingFacility 
+                                            ? setEditingFacility({...editingFacility, location: e.target.value})
+                                            : setNewFacility({...newFacility, location: e.target.value})
+                                        }
+                                        className="border p-2"
+                                    />
+                                    <input 
+                                        placeholder="الهاتف" 
+                                        value={editingFacility ? editingFacility.phone : newFacility.phone}
+                                        onChange={e => editingFacility 
+                                            ? setEditingFacility({...editingFacility, phone: e.target.value})
+                                            : setNewFacility({...newFacility, phone: e.target.value})
+                                        }
+                                        className="border p-2"
+                                    />
+                                    <input 
+                                        placeholder="البريد الإلكتروني" 
+                                        value={editingFacility ? editingFacility.email : newFacility.email}
+                                        onChange={e => editingFacility 
+                                            ? setEditingFacility({...editingFacility, email: e.target.value})
+                                            : setNewFacility({...newFacility, email: e.target.value})
+                                        }
+                                        className="border p-2"
+                                    />
+                                </div>
+                                <div className="mt-4">
+                                    {editingFacility ? (
+                                        <div className="flex gap-2">
+                                            <button onClick={updateFacility} className="bg-green-600 text-white px-4 py-2 rounded">
+                                                حفظ التعديلات
+                                            </button>
+                                            <button onClick={() => setEditingFacility(null)} className="bg-gray-600 text-white px-4 py-2 rounded">
+                                                إلغاء
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button onClick={addFacility} className="bg-blue-600 text-white px-4 py-2 rounded">
+                                            إضافة موقع
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="mt-6">
+                                <h3 className="font-bold mb-4">قائمة المواقع</h3>
+                                <div className="space-y-4">
+                                    {facilities.map(facility => (
+                                        <div key={facility.id} className="border rounded p-4 hover:bg-gray-50">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                    <h4 className="font-bold text-lg">{facility.name}</h4>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm">
+                                                        <div>
+                                                            <span className="font-semibold">رقم العقد:</span>
+                                                            <p>{facility.contractNumber || 'غير محدد'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">الشركة المشغلة:</span>
+                                                            <p>{facility.operatingCompany || 'غير محدد'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">الموقع:</span>
+                                                            <p>{facility.location || 'غير محدد'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-semibold">الاتصال:</span>
+                                                            <p>{facility.phone || 'غير محدد'}</p>
+                                                            <p>{facility.email || 'غير محدد'}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => setEditingFacility(facility)}
+                                                        className="text-blue-600 hover:text-blue-800"
+                                                    >
+                                                        <i className="fa fa-edit"></i>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            const updated = facilities.filter(f => f.id !== facility.id);
+                                                            setFacilities(updated);
+                                                            storage.facilities.save(updated);
+                                                            showToast('تم حذف الموقع');
+                                                        }}
+                                                        className="text-red-600 hover:text-red-800"
+                                                    >
+                                                        <i className="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
 
