@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -570,13 +569,16 @@
             }, [location.pathname, currentUser]);
 
             const menuItems = [
-                { label: 'التقييم اليومي', path: '/daily-evaluation', icon: 'fa-calendar-check' },
-                { label: 'المخالفات', path: '/violations', icon: 'fa-exclamation-triangle', badge: violationCount },
+                // Strict Hide for Daily Evaluation - Only Admin and User
+                { label: 'التقييم اليومي', path: '/daily-evaluation', icon: 'fa-calendar-check', roles: [UserRole.ADMIN, UserRole.USER] },
+                { label: 'المخالفات', path: '/violations', icon: 'fa-exclamation-triangle', badge: violationCount, roles: [UserRole.ADMIN, UserRole.USER] },
+                
+                // Other Reports
                 { label: 'التقييم الشهري', path: '/monthly-evaluation', icon: 'fa-table' },
                 { label: 'التقرير الشهري', path: '/monthly-report', icon: 'fa-file-text' },
                 { label: 'مؤشر الأداء', path: '/kpi', icon: 'fa-chart-pie' },
                 { label: 'الفاتورة الشهرية', path: '/invoice', icon: 'fa-file-invoice-dollar' },
-                { label: 'العمالة الإضافية', path: '/extra-labor', icon: 'fa-users-cog' },
+                { label: 'العمالة الإضافية', path: '/extra-labor', icon: 'fa-users-cog', roles: [UserRole.ADMIN, UserRole.CONTRACTOR, UserRole.USER] },
                 { label: 'الاعدادات', path: '/settings', icon: 'fa-cogs', roles: [UserRole.ADMIN] },
             ];
 
@@ -988,6 +990,7 @@
             const [selectedFacility, setSelectedFacility] = useState(currentUser.facilityId || '1');
             const [reportData, setReportData] = useState(null);
             const [facilityDetails, setFacilityDetails] = useState(null);
+            const [currentReport, setCurrentReport] = useState(null);
 
             const canSelect = [UserRole.ADMIN, UserRole.SECTION_HEAD, UserRole.DEPT_MANAGER].includes(currentUser.role);
 
@@ -999,6 +1002,10 @@
             useEffect(() => {
                 const fac = facilities.find(f => f.id === selectedFacility);
                 setFacilityDetails(fac || null);
+
+                // Check for existing report
+                const existing = DataService.monthlyReports.getAll().find(r => r.month === month && r.facilityId === selectedFacility);
+                setCurrentReport(existing);
 
                 let supervisorAbsence = 0;
                 let workerAbsence = 0;
@@ -1034,6 +1041,48 @@
 
             const employeesString = INVOICE_EMPLOYEE_STRUCTURE.map(e => `${e.role}`).join(' / ');
 
+            // Approval Logic
+            const handleSubmit = () => {
+                // Veterinarian/User Submit
+                const d = {
+                    id: `${month}-${selectedFacility}`,
+                    month,
+                    facilityId: selectedFacility,
+                    notes: '',
+                    submitted: true,
+                    approvedBySectionHead: false,
+                    approvedByContractor: false,
+                    signatures: { enteredBy: currentUser.name, enteredDate: new Date().toLocaleDateString('en-GB') }
+                };
+                DataService.monthlyReports.save([...DataService.monthlyReports.getAll().filter(r => r.id !== d.id), d]);
+                setCurrentReport(d);
+                showToast('تم التقديم');
+            };
+
+            const handleSectionHeadApprove = () => {
+                if (!currentReport) return;
+                const d = { 
+                    ...currentReport, 
+                    approvedBySectionHead: true, 
+                    signatures: { ...currentReport.signatures, sectionHead: currentUser.name, sectionHeadDate: new Date().toLocaleDateString('en-GB') } 
+                };
+                DataService.monthlyReports.save([...DataService.monthlyReports.getAll().filter(r => r.id !== d.id), d]);
+                setCurrentReport(d);
+                showToast('تم الاعتماد (رئيس الشعبة)');
+            };
+
+            const handleContractorApprove = () => {
+                if (!currentReport) return;
+                const d = { 
+                    ...currentReport, 
+                    approvedByContractor: true, 
+                    signatures: { ...currentReport.signatures, contractor: currentUser.name, contractorDate: new Date().toLocaleDateString('en-GB') } 
+                };
+                DataService.monthlyReports.save([...DataService.monthlyReports.getAll().filter(r => r.id !== d.id), d]);
+                setCurrentReport(d);
+                showToast('تم الاعتماد (المقاول)');
+            };
+
             return (
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded shadow flex justify-between items-center no-print">
@@ -1041,6 +1090,22 @@
                         <div className="flex gap-2">
                             {canSelect && <select value={selectedFacility} onChange={e => setSelectedFacility(e.target.value)} className="border p-2 rounded">{facilities.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>}
                             <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="border p-2 rounded" />
+                            
+                            {/* Submit Button for User/Admin */}
+                            {(!currentReport?.submitted && [UserRole.ADMIN, UserRole.USER].includes(currentUser.role)) && (
+                                <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-2 rounded">تقديم</button>
+                            )}
+
+                            {/* Section Head Verify/Approve Button */}
+                            {(currentReport?.submitted && !currentReport?.approvedBySectionHead && currentUser.role === UserRole.SECTION_HEAD) && (
+                                <button onClick={handleSectionHeadApprove} className="bg-gold text-white px-4 py-2 rounded">اعتماد رئيس الشعبة</button>
+                            )}
+
+                            {/* Contractor Approve Button */}
+                            {(currentReport?.submitted && !currentReport?.approvedByContractor && currentUser.role === UserRole.CONTRACTOR) && (
+                                <button onClick={handleContractorApprove} className="bg-purple-600 text-white px-4 py-2 rounded">اعتماد المقاول</button>
+                            )}
+
                             <button onClick={handleExport} className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2"><i className="fa fa-file-pdf"></i> PDF</button>
                         </div>
                     </div>
@@ -1126,11 +1191,17 @@
                                 <div className="w-1/2 text-center p-1 font-bold bg-gray-50">الطبيب البيطري</div>
                             </div>
                             <div className="flex h-16">
-                                <div className="w-1/2 border-l border-black p-2"></div>
-                                <div className="w-1/2 p-2 text-center flex items-end justify-center font-bold">{currentUser.name}</div>
+                                <div className="w-1/2 border-l border-black p-2 flex items-end justify-center font-bold">
+                                    {currentReport?.approvedByContractor ? currentReport.signatures.contractor : ''}
+                                </div>
+                                <div className="w-1/2 p-2 text-center flex items-end justify-center font-bold">
+                                    {currentReport?.submitted ? currentReport.signatures.enteredBy : ''}
+                                </div>
                             </div>
                             <div className="text-center p-1 font-bold bg-gray-50 border-t border-b border-black">رئيس شعبة المسالخ</div>
-                            <div className="h-16"></div>
+                            <div className="h-16 flex items-end justify-center font-bold">
+                                {currentReport?.approvedBySectionHead ? currentReport.signatures.sectionHead : ''}
+                            </div>
                         </div>
 
                         <div className="mt-auto bg-[#c5b358] flex justify-between px-4 py-1 font-bold border-t-2 border-[#8b4513]">
@@ -1143,7 +1214,7 @@
             );
         };
 
-        // KPI Page
+        // KPI Page (Unchanged from visual fix, just included)
         const KPIPage = ({ currentUser }) => {
             const { showToast } = useToast();
             const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -1279,7 +1350,7 @@
                                 </div>
                                 <div className="flex flex-col w-[21%]">
                                     <div className="h-10 bg-[#c5b358] text-white flex items-center justify-center font-bold border-b border-white">ملاحظات</div>
-                                    {items.map((item, index) => (<div key={item.id} className={`flex-1 flex items-center justify-center p-1 border-b border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}><input className="w-full text-center bg-transparent outline-none text-[10px]" value={notes[item.id] || ''} onChange={e => setNotes({...notes, [item.id]: e.target.value})} readOnly={!!status?.approvedByManager}/></div>))}
+                                    {items.map((item, index) => (<div key={item.id} className={`flex-1 flex items-center justify-center border-b border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}><input className="w-full text-center bg-transparent outline-none" value={notes[item.id]||''} onChange={e=>setNotes({...notes, [item.id]:e.target.value})} /></div>))}
                                 </div>
                             </div>
                         </div>
@@ -1574,8 +1645,19 @@
                     <HashRouter>
                         <Layout currentUser={currentUser} onLogout={handleLogout}>
                             <Routes>
-                                <Route path="/" element={<Navigate to="/daily-evaluation" replace />} />
-                                <Route path="/daily-evaluation" element={<DailyEvaluationPage currentUser={currentUser} />} />
+                                {/* Role-Based Default Routing */}
+                                <Route path="/" element={<Navigate to={[UserRole.ADMIN, UserRole.USER].includes(currentUser.role) ? "/daily-evaluation" : "/monthly-report"} />} />
+                                
+                                {/* Route for Daily Evaluation - Strict Role Protection */}
+                                <Route 
+                                    path="/daily-evaluation" 
+                                    element={
+                                        [UserRole.ADMIN, UserRole.USER].includes(currentUser.role) 
+                                        ? <DailyEvaluationPage currentUser={currentUser} /> 
+                                        : <Navigate to="/monthly-report" replace />
+                                    } 
+                                />
+                                
                                 <Route path="/violations" element={<ViolationsPage currentUser={currentUser} />} />
                                 <Route path="/monthly-evaluation" element={<MonthlyEvaluationPage currentUser={currentUser} />} />
                                 <Route path="/monthly-report" element={<MonthlyReportPage currentUser={currentUser} />} />
